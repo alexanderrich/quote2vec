@@ -26,8 +26,8 @@ def parse_html(html):
                  'Misattributed', 'Quotes about',
                  'Quotations regarding', 'See also', 'References',
                  'Posthumous attributions', 'About', 'Criticism']
-    # parse each section until reachign the External links section
-    while not (node.name == 'h2' and node.span.get_text() == "External links"):
+    # parse each section until reaching the External links section
+    while not (node is None or (node.name == 'h2' and node.span.get_text() == "External links")):
         blacklisted = False
         for title in blacklist:
             if node.span.get_text().startswith(title):
@@ -37,7 +37,7 @@ def parse_html(html):
             node = s.end.next_sibling
         else:
             s = Section(node)
-            s.propagate_work()
+            s.propagate_source()
             quotes = quotes + s.collect_quotes()
             node = s.end.next_sibling
     return quotes
@@ -75,8 +75,8 @@ class Section:
         self.start = start_heading
         # node representing end of section
         self.end = None
-        # is the title of this section a Work name?
-        self.is_work = False
+        # is the title of this section a source name?
+        self.is_source = False
         self.title = start_heading.span.get_text()
         # subsections of this section
         self.children = []
@@ -85,69 +85,72 @@ class Section:
         # heading level of this section
         self.level = int(self.start.name[1:])
         self.parse()
-        self.determine_if_work()
+        self.determine_if_source()
 
     def parse(self):
         """Parse section, populating "children" and "quotes"
         """
         node = self.start
         while self.end is None:
-            node = node.next_sibling
-            if node.name == 'ul':
-                self.quotes.append(Quote(node))
-            elif node.name in ['h' + str(i) for i in range(1, 6)]:
-                node_level = int(node.name[1:])
-                if node_level > self.level:
-                    s = Section(node)
-                    self.children.append(s)
-                    node = s.end
-                else:
-                    self.end = node.previous_sibling
+            if node.next_sibling is None:
+                self.end = node
+            else:
+                node = node.next_sibling
+                if node.name == 'ul':
+                    self.quotes.append(Quote(node))
+                elif node.name in ['h' + str(i) for i in range(1, 6)]:
+                    node_level = int(node.name[1:])
+                    if node_level > self.level:
+                        s = Section(node)
+                        self.children.append(s)
+                        node = s.end
+                    else:
+                        self.end = node.previous_sibling
 
-    def determine_if_work(self):
-        """Determine if the current section's title is a Work
+    def determine_if_source(self):
+        """Determine if the current section's title is a source
         """
         # titles ending in a parenthetical (usually with date) are generally
-        # works.
-        p = re.compile(r'.*\(\w*\)')
+        # sources.
+        p = re.compile(r'.*\(.*\)')
         m = p.match(self.title)
         if self.title in ['Quotes', 'Sourced']:
-            self.is_work = False
+            self.is_source = False
             return
         # otherwise, sections that have no children, and where most quotes
-        # don't appear to have a Work, are usually Works
+        # don't appear to have a source, are usually sources
         if m and m.group() == self.title:
-            self.is_work = True
+            self.is_source = True
             return
-        quotes_lack_work = False
-        n_quotes_with_work = sum(
-            map(lambda x: x.potential_work is not None, self.quotes))
+        quotes_lack_source = False
+        n_quotes_with_source = sum(
+            map(lambda x: x.potential_source is not None, self.quotes))
         n_quotes = len(self.quotes)
-        if n_quotes > 0 and n_quotes_with_work / n_quotes < .5:
-            quotes_lack_work = True
+        if n_quotes > 0 and n_quotes_with_source / n_quotes < .5:
+            quotes_lack_source = True
         has_children = len(self.children) > 0
-        if quotes_lack_work and not has_children:
-            self.is_work = True
+        if quotes_lack_source and not has_children:
+            self.is_source = True
 
-    def propagate_work(self, higher_work=None):
-        """set work attribute in the sections quotes, and apply to subsections
+    def propagate_source(self, higher_source=None):
+        """set source attribute in the sections quotes, and apply to subsections
         """
-        if higher_work:
-            work = higher_work
-        elif self.is_work:
-            work = self.title
+        if higher_source:
+            source = higher_source
+        elif self.is_source:
+            source = self.title
         else:
-            work = None
-        if work is None:
+            source = None
+        if source is None:
             for x in self.quotes:
-                x.keep_potential_work()
+                x.keep_potential_source()
             for x in self.children:
-                x.propagate_work()
+                x.propagate_source()
         else:
             for x in self.quotes:
-                x.set_work(work)
+                x.set_source(source)
             for x in self.children:
-                x.propagate_work(work)
+                x.propagate_source(source)
 
     def collect_quotes(self):
         """collect quotes from section and subsections
@@ -168,10 +171,10 @@ class Quote:
     """
     def __init__(self, text):
         self.text = text
-        # work that the quote is drawn from
-        self.work = None
-        # potential work title found in quote
-        self.potential_work = None
+        # source that the quote is drawn from
+        self.source = None
+        # potential source title found in quote
+        self.potential_source = None
         self.quote = ''
         # is quote in foreign language?
         self.foreign = False
@@ -179,18 +182,18 @@ class Quote:
         self.invalid = False
         self.parse()
 
-    def keep_potential_work(self):
-        """set work to potential_work
+    def keep_potential_source(self):
+        """set source to potential_source
         """
-        self.work = self.potential_work
+        self.source = self.potential_source
 
-    def set_work(self, work_name):
-        """set work to given work_name
+    def set_source(self, source_name):
+        """set source to given source_name
         """
-        self.work = work_name
+        self.source = source_name
 
     def parse(self):
-        """parse quote node, setting quote and potential_work attributes
+        """parse quote node, setting quote and potential_source attributes
         """
 
         text = self.text.li
@@ -213,23 +216,24 @@ class Quote:
                     parts.append(c)
             return parts
 
-        # get sub-bullets which might include work name
+        # get sub-bullets which might include source name
         meta_info = text.ul
         quote_parts = get_bullet_parts(text)
         try:
             # quote is in foreign language with translation
-            if len(quote_parts) == 1 and quote_parts[0].name == 'i' and meta_info:
+            quote_tag_parts = [t for t in quote_parts if type(t).__name__ != "NavigableString"]
+            if len(quote_tag_parts) == 1 and quote_tag_parts[0].name == 'i' and meta_info:
                 bullets = meta_info.find_all('li')
                 quote_parts = get_bullet_parts(bullets[0])
                 self.quote = ''.join(map(extract_text, quote_parts)).strip()
                 if len(bullets) > 1:
-                    work_parts = get_bullet_parts(bullets[1])
-                    self.potential_work = ''.join(map(extract_text, work_parts)).strip()
+                    source_parts = get_bullet_parts(bullets[1])
+                    self.potential_source = ''.join(map(extract_text, source_parts)).strip()
             else:
                 self.quote = ''.join(map(extract_text, quote_parts)).strip()
                 if meta_info:
-                    work_parts = get_bullet_parts(meta_info.li)
-                    self.potential_work = ''.join(map(extract_text, work_parts)).strip()
+                    source_parts = get_bullet_parts(meta_info.li)
+                    self.potential_source = ''.join(map(extract_text, source_parts)).strip()
         except Exception as e:
             print(e)
             print(quote_parts, meta_info)
