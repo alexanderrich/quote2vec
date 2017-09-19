@@ -1,5 +1,7 @@
 from bs4 import BeautifulSoup
 import re
+import langdetect
+import langid
 
 
 def parse_html(html):
@@ -24,6 +26,7 @@ def parse_html(html):
     # quotes under these titles likely aren't actually by the individual
     blacklist = ['Disputed', 'Attributed',
                  'Misattributed', 'Quotes about',
+                 'Quotations about',
                  'Quotations regarding', 'See also', 'References',
                  'Posthumous attributions', 'About', 'Criticism']
     # parse each section until reaching the External links section
@@ -212,28 +215,51 @@ class Quote:
             for c in q.children:
                 if c.name == 'ul':
                     break
-                elif not (c.name == 'div' and 'thumb' in c['class']):
+                elif c.name == 'div' and 'thumb' in c['class']:
+                    pass
+                elif c.name == 'a' and 'class' in c.attrs and 'autonumber' in c['class']:
+                    pass
+                else:
                     parts.append(c)
             return parts
+
+        def is_english(quote):
+            if ('en' in [x.lang for x in langdetect.detect_langs(quote)]) or (langid.classify(quote)[0]=='en'):
+                return True
+            else:
+                return False
 
         # get sub-bullets which might include source name
         meta_info = text.ul
         quote_parts = get_bullet_parts(text)
         try:
-            # quote is in foreign language with translation
-            quote_tag_parts = [t for t in quote_parts if type(t).__name__ != "NavigableString"]
-            if len(quote_tag_parts) == 1 and quote_tag_parts[0].name == 'i' and meta_info:
-                bullets = meta_info.find_all('li')
-                quote_parts = get_bullet_parts(bullets[0])
-                self.quote = ''.join(map(extract_text, quote_parts)).strip()
-                if len(bullets) > 1:
-                    source_parts = get_bullet_parts(bullets[1])
-                    self.potential_source = ''.join(map(extract_text, source_parts)).strip()
+            quote = ''.join(map(extract_text, quote_parts)).strip()
+            # quote in foreign language, try next subbullet
+            if not is_english(quote):
+                if meta_info:
+                    bullets = meta_info.find_all('li')
+                    quote_parts = get_bullet_parts(bullets[0])
+                    quote = ''.join(map(extract_text, quote_parts)).strip()
+                    # check if subbullet seems to be in english
+                    if is_english(quote):
+                        self.quote = ''.join(map(extract_text, quote_parts)).strip()
+                        if len(bullets) > 1:
+                            source_parts = get_bullet_parts(bullets[1])
+                            self.potential_source = ''.join(map(extract_text, source_parts)).strip()
+                    else:
+                        self.invalid = True
+                else:
+                    self.invalid = True
+                    print("foreign with no meta-info:", quote)
             else:
-                self.quote = ''.join(map(extract_text, quote_parts)).strip()
+                self.quote = quote
                 if meta_info:
                     source_parts = get_bullet_parts(meta_info.li)
                     self.potential_source = ''.join(map(extract_text, source_parts)).strip()
+            # try to catch things like chapter headings that get through from bad parses
+            badwords = ['p.', 'ch.', 'chapter', 'page', 'chap.']
+            if len(quote) < 25 and sum([(b in quote.lower()) for b in badwords]) > 0:
+                self.invalid = True
         except Exception as e:
             print(e)
             print(quote_parts, meta_info)
