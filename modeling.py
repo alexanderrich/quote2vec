@@ -142,3 +142,22 @@ class LsiWrapper(BaseModel):
         except:
             self.index = similarities.Similarity('similarities/'+name, self.transformed, num_topics)
             self.index.save('similarities/'+name+'.index')
+
+
+class Doc2VecWrapper(BaseModel):
+    def __init__(self, idx2id, parsed, name, **kwargs):
+        super().__init__(idx2id, parsed, name)
+        taggeddocs = [models.doc2vec.TaggedDocument(x, [i]) for i, x in enumerate(parsed)]
+        try:
+            self.model = models.doc2vec.Doc2Vec.load('models/'+name+'.model')
+        except:
+            self.model = models.doc2vec.Doc2Vec(**kwargs)
+            self.model.build_vocab(taggeddocs)
+            self.model.train(taggeddocs, total_examples=self.model.corpus_count, epochs=self.model.iter)
+            self.model.save('models/'+name+'.model')
+        self.transformed = self.model.docvecs[range(len(taggeddocs))]
+        try:
+            self.index = similarities.Similarity.load('similarities/'+name+'.index')
+        except:
+            self.index = similarities.Similarity('similarities/'+name, self.transformed, self.transformed.shape[1])
+            self.index.save('similarities/'+name+'.index')
