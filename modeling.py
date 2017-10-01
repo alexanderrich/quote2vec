@@ -59,47 +59,65 @@ class BaseModel:
         session.close()
         return sims, quotes
 
-    def score(self, n_samples=100, scoretype="both"):
+    def score(self, n_samples=100):
         # get fresh session
         session = Session()
         # original = session.query(Quote).all()
         sample = [x for x in range(len(self.parsed))]
         shuffle(sample)
         sample = sample[:n_samples]
-        if scoretype is not "source":
-            diffs = []
-            for i in sample:
-                sims = self.index[self.transformed[i]]
-                shared_person = session.query(Quote).filter(Quote.id==self.idx2id[i]).one()
-                shared_person = shared_person.person.quotes
-                idxs = [self.id2idx[q.id] for q in shared_person if q.id != self.idx2id[i]]
-                if len(idxs):
-                    m_all = np.mean(sims)
-                    sd = np.std(sims)
-                    m_same = np.mean(np.array(sims)[idxs])
-                    diffs.append((m_same-m_all)/sd)
-            persondiff = np.mean(diffs)
-        if scoretype is not "person":
-            diffs = []
-            for i in sample:
-                sims = self.index[self.transformed[i]]
-                shared_source = session.query(Quote).filter(Quote.id==self.idx2id[i]).one()
-                if shared_source.source:
-                    shared_source = shared_source.source.quotes
-                    idxs = [self.id2idx[q.id] for q in shared_source if q.id != self.idx2id[i]]
-                    if len(idxs):
-                        m_all = np.mean(sims)
-                        sd = np.std(sims)
-                        m_same = np.mean(np.array(sims)[idxs])
-                        diffs.append((m_same-m_all)/sd)
-            sourcediff = np.mean(diffs)
-        if scoretype == "person":
-            diff = persondiff
-        elif scoretype == "source":
-            diff = sourcediff
-        else:
-            diff = (sourcediff + persondiff) / 2
+        quotes = session.query(Quote).all()
+        person2quotes = {}
+        for q in quotes:
+            if q.person_id not in person2quotes:
+                person2quotes[q.person_id] = [q.id]
+            else:
+                person2quotes[q.person_id].append(q.id)
+        quote2personquotes = {}
+        for p, qlist in person2quotes.items():
+            for q in qlist:
+                quote2personquotes[q] = qlist
+        quotes = session.query(Quote).all()
+        source2quotes = {}
+        for q in quotes:
+            if q.source_id:
+                if q.source_id not in source2quotes:
+                    source2quotes[q.source_id] = [q.id]
+                else:
+                    source2quotes[q.source_id].append(q.id)
+        quote2sourcequotes = {}
+        for p, qlist in source2quotes.items():
+            for q in qlist:
+                quote2sourcequotes[q] = qlist
         session.close()
+        persondiffs = []
+        sourcediffs = []
+        # transvec = [self.transformed[x] for x in sample]
+        # loopcount = -1
+        # for sims in self.index[transvec]:
+            # loopcount += 1
+            # i = sample[loopcount]
+        for i in sample:
+            # sims = self.index[self.transformed[i]]
+            sims = self.index.similarity_by_id(i)
+            m_all = np.mean(sims)
+            sd = np.std(sims)
+            ids = quote2personquotes[self.idx2id[i]]
+            idxs = [self.id2idx[id] for id in ids if self.id2idx[id] != i]
+            person_idxs = [i for i in idxs if i < len(self.parsed)]
+            if len(person_idxs):
+                m_person = np.mean(np.array(sims)[idxs])
+                persondiffs.append((m_person-m_all)/sd)
+            if self.idx2id[i] in quote2sourcequotes:
+                ids = quote2sourcequotes[self.idx2id[i]]
+                idxs = [self.id2idx[id] for id in ids if self.id2idx[id] != i]
+                source_idxs = [i for i in idxs if i < len(self.parsed)]
+                if len(source_idxs):
+                    m_source = np.mean(np.array(sims)[idxs])
+                    sourcediffs.append((m_source-m_all)/sd)
+        persondiff = np.mean(persondiffs)
+        sourcediff = np.mean(sourcediffs)
+        diff = (sourcediff + persondiff) / 2
         return diff
 
 
