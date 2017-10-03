@@ -18,35 +18,46 @@ def build_corpus(filename=None):
         else:
             return t.lemma_
     parsed = [[lemma(q) for q in nlp(quote.replace("’", "'").replace("—", " ").replace("-", " ")) if q.pos_ not in ['PUNCT', 'SPACE']] for quote in quotes]
-    idx2id = {i: original[i].id for i in range(len(original))}
+    # idx2id = {i: original[i].id for i in range(len(original))}
+    idx2id = [q.id for q in original]
+    idx2source = [q.source_id for q in original]
+    idx2source = [s if s is not None else -1 for s in idx2source]
+    idx2person = [q.person_id for q in original]
     if filename:
         parsedstrings = [" ".join(q) + "\n" for q in parsed]
+        parsedstrings = ["{}|{}|{}|{}".format(str(idx2id[i]),
+                                              str(idx2source[i]),
+                                              str(idx2person[i]),
+                                              parsedstrings[i])
+                         for i in range(len(parsedstrings))]
         with open(filename, 'w') as f:
             f.writelines(parsedstrings)
-    return idx2id, parsed
+    return idx2id, idx2source, idx2person, parsed
 
 
 def load_corpus(filename):
-    session = Session()
-    original = session.query(Quote).all()
-    idx2id = {i: original[i].id for i in range(len(original))}
-    session.close()
     with open(filename, 'r') as f:
         parsed = f.readlines()
-        parsed = [q.strip().split() for q in parsed]
-    return idx2id, parsed
+        parsed = [q.strip().split("|") for q in parsed]
+        idx2id = [int(q[0]) for q in parsed]
+        idx2source = [int(q[1]) for q in parsed]
+        idx2person = [int(q[2]) for q in parsed]
+        parsed = [q[3].strip().split() for q in parsed]
+    return idx2id, idx2source, idx2person, parsed
 
 
 class BaseModel:
 
-    def __init__(self, idx2id, parsed, name):
+    def __init__(self, idx2id, idx2source, idx2person, parsed, name):
         self.modelfn = None
         self.model = None
         self.transformed = None
         self.index = None
         self.dictionary = None
-        self.idx2id = idx2id
-        self.id2idx = {v: k for k, v in idx2id.items()}
+        self.idx2id = {i: idx2id[i] for i in range(len(idx2id))}
+        self.id2idx = {v: k for k, v in self.idx2id.items()}
+        self.id2source = {idx2id[i]: idx2source[i] for i in range(len(idx2id))}
+        self.id2person = {idx2id[i]: idx2person[i] for i in range(len(idx2id))}
         self.parsed = parsed
 
     def get_similar(self, idx, n=10):
@@ -60,36 +71,30 @@ class BaseModel:
         return sims, quotes
 
     def score(self, n_samples=100):
-        # get fresh session
-        session = Session()
-        # original = session.query(Quote).all()
         sample = [x for x in range(len(self.parsed))]
         shuffle(sample)
         sample = sample[:n_samples]
-        quotes = session.query(Quote).all()
         person2quotes = {}
-        for q in quotes:
-            if q.person_id not in person2quotes:
-                person2quotes[q.person_id] = [q.id]
+        for qid, pid in self.id2person.items():
+            if pid not in person2quotes:
+                person2quotes[pid] = [qid]
             else:
-                person2quotes[q.person_id].append(q.id)
+                person2quotes[pid].append(qid)
         quote2personquotes = {}
         for p, qlist in person2quotes.items():
             for q in qlist:
                 quote2personquotes[q] = qlist
-        quotes = session.query(Quote).all()
         source2quotes = {}
-        for q in quotes:
-            if q.source_id:
-                if q.source_id not in source2quotes:
-                    source2quotes[q.source_id] = [q.id]
+        for qid, sid in self.id2source.items():
+            if sid > -1:
+                if sid not in source2quotes:
+                    source2quotes[sid] = [qid]
                 else:
-                    source2quotes[q.source_id].append(q.id)
+                    source2quotes[sid].append(qid)
         quote2sourcequotes = {}
         for p, qlist in source2quotes.items():
             for q in qlist:
                 quote2sourcequotes[q] = qlist
-        session.close()
         persondiffs = []
         sourcediffs = []
         # transvec = [self.transformed[x] for x in sample]
@@ -123,8 +128,8 @@ class BaseModel:
 
 class LsiWrapper(BaseModel):
 
-    def __init__(self, idx2id, parsed, num_topics, name):
-        super().__init__(idx2id, parsed, name)
+    def __init__(self, idx2id, idx2source, idx2person, parsed, num_topics, name):
+        super().__init__(idx2id, idx2source, idx2person, parsed, name)
         dictionary = corpora.Dictionary(parsed)
         bow = [dictionary.doc2bow(q) for q in parsed]
         tfidf = models.TfidfModel(bow)
@@ -145,8 +150,8 @@ class LsiWrapper(BaseModel):
 
 
 class Doc2VecWrapper(BaseModel):
-    def __init__(self, idx2id, parsed, name, **kwargs):
-        super().__init__(idx2id, parsed, name)
+    def __init__(self, idx2id, idx2source, idx2person, parsed, name, **kwargs):
+        super().__init__(idx2id, idx2source, idx2person, parsed, name)
         self.name = name
         self.taggeddocs = [models.doc2vec.TaggedDocument(x, [i]) for i, x in enumerate(parsed)]
         try:
