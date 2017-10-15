@@ -152,7 +152,7 @@ class Doc2VecWrapper(BaseModel):
         try:
             self.model = models.doc2vec.Doc2Vec.load('models/'+name+'.model')
             self.index = similarities.Similarity.load('similarities/'+name+'.index')
-            self.transformed = self.model.docvecs#[range(len(self.taggeddocs))]
+            self.transformed = self.model.docvecs
         except:
             self.model = models.doc2vec.Doc2Vec(**kwargs)
             self.model.build_vocab(self.taggeddocs)
@@ -169,3 +169,16 @@ class Doc2VecWrapper(BaseModel):
         self.transformed = self.model.docvecs[[x[0] for x in self.parsed]]
         self.index = similarities.Similarity('similarities/'+self.name, self.transformed, self.transformed.shape[1])
         self.index.save('similarities/'+self.name+'.index')
+
+    def get_docvec(self, id):
+        return self.model.docvecs[id]
+
+
+if __name__=="__main__":
+    parsed = load_corpus('tokenized.txt')
+    model = Doc2VecWrapper(parsed, 'dbow300_withgoogle', size=300, min_count=2, dm=0, negative=5, dbow_words=1, workers=8, sample=10**-3)
+    model.model.intersect_word2vec_format('GoogleNews-vectors-negative300.bin', binary=True, lockf=1.0)
+    for i in range(20):
+        model.train(.025*(.95**i))
+    model.finish_training()
+    print(model.score(n_samples=20000))
