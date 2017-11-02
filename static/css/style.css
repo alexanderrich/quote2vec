@@ -1,0 +1,39 @@
+#navbar {
+    height: 50px;
+    padding: 10px;
+}
+
+#content {
+    position: fixed;
+    padding: 0px;
+}
+
+#quotelist-container {
+    position: fixed;
+    top: 70px;
+    right: 0px;
+    bottom: 0px;
+    padding: 10px;
+    padding-bottom: 30px;
+    width: 40%;
+    border-left: 3px solid gray;
+    overflow: scroll;
+}
+
+#svg-container {
+    position: fixed;
+    top: 60px;
+    left: 0px;
+    bottom: 0px;
+    width: 60%;
+}
+
+#svg {
+    width: 100%;
+    height: 100%;
+}
+
+.quotediv {
+    border-top: 2px solid gray;
+    padding: 10px;
+}
