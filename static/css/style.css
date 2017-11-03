@@ -37,3 +37,13 @@
     border-top: 2px solid gray;
     padding: 10px;
 }
+
+.popup {
+    position: absolute;
+    width: 500px;
+    pointer-events: none;
+    border: 2px solid black;
+    background-color: white;
+    padding: 10px;
+    opacity: 0;
+}

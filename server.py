@@ -58,6 +58,38 @@ def get_quote_group(groupid):
         response = {'error': "No result found."}
     return jsonify(response)
 
+@app.route('/coords/<groupstring>')
+def get_group_coords(groupstring):
+    groupstrings = groupstring.split('&')
+    groups = []
+    for g in groupstrings:
+        match = re.match(r"([a-z]+)([0-9]+)", g, re.I)
+        groups.append((match.group(1), int(match.group(2))))
+    grouplists = []
+    for g in groups:
+        if g[0] == 'quote':
+            quotes, _, _ = mi.get_similar_quotes(g[1])
+        elif g[0] == 'source':
+            quotes, _, _ = mi.get_source_quotes(g[1])
+        elif g[0] == 'person':
+            quotes, _, _ = mi.get_person_quotes(g[1])
+        grouplists.append([q.id for q in quotes])
+    allquotes = [q for l in grouplists for q in l]
+    allquotes = list(set(allquotes))
+    coords = mi.get_vis_coords(allquotes)
+    quotecoords = dict(zip(allquotes, coords))
+    resp_array = []
+    for i in range(len(groupstrings)):
+        for j in range(len(grouplists[i])):
+            qid = grouplists[i][j]
+            resp_array.append({
+                'group': groupstrings[i],
+                'quote': qid,
+                'coords': quotecoords[qid].tolist()
+            })
+    response = {'coords': resp_array}
+    return jsonify(response)
+
 
 if __name__ == '__main__':
     host = "0.0.0.0"
