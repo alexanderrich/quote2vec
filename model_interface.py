@@ -75,7 +75,7 @@ class ModelInterface:
         sims = self.index[self.dv[id]]
         sims = sorted(enumerate(sims), key=lambda item: -item[1])
         sims = sims[:n]
-        ids = [i[0] for i in sims]
+        ids = [i[0]+1 for i in sims]
         session = Session()
         quotes = session.query(Quote).filter(Quote.id.in_(ids)).all()
         source_ids = set([q.source_id for q in quotes if q.source_id is not None])

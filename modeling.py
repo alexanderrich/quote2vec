@@ -175,10 +175,11 @@ class Doc2VecWrapper(BaseModel):
 
 
 if __name__=="__main__":
-    parsed = load_corpus('tokenized.txt')
+    parsed = build_corpus('tokenized.txt')
     model = Doc2VecWrapper(parsed, 'dbow300_withgoogle', size=300, min_count=2, dm=0, negative=5, dbow_words=1, workers=8, sample=10**-3)
     model.model.intersect_word2vec_format('GoogleNews-vectors-negative300.bin', binary=True, lockf=1.0)
     for i in range(20):
         model.train(.025*(.95**i))
     model.finish_training()
-    print(model.score(n_samples=20000))
+    model.model.docvecs.save('models/docvecs')
+    print(model.score(n_samples=10000))

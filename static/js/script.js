@@ -1,38 +1,38 @@
 
-Person = Backbone.Model.extend({
+var Person = Backbone.Model.extend({
 });
 
-Quote = Backbone.Model.extend({
+var Quote = Backbone.Model.extend({
 });
 
-Source = Backbone.Model.extend({
+var Source = Backbone.Model.extend({
 });
 
-QuoteList = Backbone.Collection.extend({
+var QuoteList = Backbone.Collection.extend({
     model: Quote
 });
 
-SourceList = Backbone.Collection.extend({
+var SourceList = Backbone.Collection.extend({
     model: Source
 });
 
-PersonList = Backbone.Collection.extend({
+var PersonList = Backbone.Collection.extend({
     model: Person
 });
 
-ql = new QuoteList();
-sl = new SourceList();
-pl = new PersonList();
+var ql = new QuoteList();
+var sl = new SourceList();
+var pl = new PersonList();
 
-Coords = Backbone.Model.extend({
+var Coords = Backbone.Model.extend({
     defaults: {'coords': []}
 });
 
 
-Group = Backbone.Model.extend({
+var Group = Backbone.Model.extend({
     urlRoot: 'group',
     parse: function (response) {
-        resp = {quotes: [],
+        var resp = {quotes: [],
                 sources: [],
                 people: []
                };
@@ -48,50 +48,110 @@ Group = Backbone.Model.extend({
             pl.add(new Person(i));
             resp.people.push(i.id);
         });
+        if (this.get("groupbasetype") === "person") {
+            resp.basemodel =  pl.get(this.get("groupbaseid"));
+        } else if (this.get("groupbasetype") === "source") {
+            resp.basemodel =  sl.get(this.get("groupbaseid"));
+        } else {
+            resp.basemodel =  ql.get(this.get("groupbaseid"));
+        }
         return resp;
     }
 });
 
+var GroupList = Backbone.Collection.extend({
+    model: Group
+});
+
+var gl = new GroupList();
+
 
 var GroupView = Backbone.View.extend({
     model: Group,
-    // initialize: function() {
-    //     this.listenTo(this.model, 'all', this.render);
-    // },
+    initialize: function () {
+        this.template = _.template($('#group-template').html());
+    },
     render: function () {
-        // this.$el.html(this.model.get('quotes').toString());
+        var head,
+            quote = '',
+            source = '',
+            person;
+        if (this.model.get('groupbasetype') === 'person') {
+            head = "Quotes by";
+            person = this.model.get('basemodel').get('name');
+        } else if (this.model.get('groupbasetype') === 'source') {
+            head = "Quotes from";
+            person = pl.get(
+                this.model.get('basemodel').get('person_id')
+            ).get('name');
+            source = this.model.get('basemodel').get('source');
+        } else {
+            head = "Quotes similar to";
+            person = pl.get(
+                this.model.get('basemodel').get('person_id')
+            ).get('name');
+            quote = this.model.get('basemodel').get('quote');
+        }
         this.$el.html("");
+        this.$el.html(this.template({head: head,
+                                     quote: quote,
+                                     source: source,
+                                     person: person
+                                    }));
+        var quotediv = this.$el.children('.quoteholder').eq(0);
         for(var i = 0; i < this.model.get('quotes').length; i++){
             var quoteview = new QuoteView({
                 model: ql.get(this.model.get('quotes')[i])
             });
-            this.$el.append(quoteview.$el);
+            quotediv.append(quoteview.$el);
             quoteview.render();
         }
         return this;
     }
 });
 
+
+var view;
+
 var QuoteView = Backbone.View.extend({
     model: Quote,
     tagName: "div",
     className: "quotediv",
+    events: {
+        'click .quote': 'clickQuote',
+        'click .source': 'clickSource',
+        'click .person': 'clickPerson'
+    },
     initialize: function () {
         this.id = "quotediv" + this.model.id;
         this.template = _.template($("#quote-template").html());
     },
     render: function () {
-        person = pl.get(this.model.get('person_id')).get('name');
-        source = sl.get(this.model.get('source_id')).get('source');
+        var person = pl.get(this.model.get('person_id')).get('name');
+        var source;
+        if (this.model.get('source_id')){
+            source = sl.get(this.model.get('source_id')).get('source');
+        } else {
+            source = "";
+        }
         this.$el.html(this.template({person: person,
                                      source: source,
                                      quote: this.model.get('quote')}));
         return this;
+    },
+    clickQuote: function () {
+        showGroup('quote', this.model.get('id'));
+    },
+    clickSource: function () {
+        showGroup('source', this.model.get('source_id'));
+    },
+    clickPerson: function () {
+        showGroup('person', this.model.get('person_id'));
     }
 });
 
 
-Scatter = function (element, data) {
+var Scatter = function (element, data) {
 
     var xValue = function(d){ return d.coords[0]; },
         size = _.min([$('#svg').width(), $('#svg').height()]),
@@ -106,7 +166,6 @@ Scatter = function (element, data) {
         points,
         datakey = function(d, i) {return d.group + "_" + d.quote; };
 
-    console.log(data);
     xScale.domain([d3.min(data, xValue), d3.max(data, xValue)]);
     yScale.domain([d3.min(data, yValue), d3.max(data, yValue)]);
 
@@ -140,8 +199,8 @@ Scatter = function (element, data) {
             .attr('cy', yMap)
             .style('opacity', 0)
             .on('mouseover', function(d) {
-                quote = ql.get(d.quote);
-                popupview = new QuoteView({model: quote, className: 'popup', el: $("#popup")});
+                var quote = ql.get(d.quote);
+                var popupview = new QuoteView({model: quote, className: 'popup', el: $("#popup")});
                 popupview.render();
                 d3.select('#popup')
                     .style('opacity', 1)
@@ -176,7 +235,7 @@ Scatter = function (element, data) {
 
 };
 
-PlotView = Backbone.View.extend({
+var PlotView = Backbone.View.extend({
     model: Coords,
     initialize: function () {
         this.listenTo(this.model, 'change', this.update);
@@ -190,22 +249,35 @@ PlotView = Backbone.View.extend({
 });
 
 
-$(document).ready(function() {
-
-    coords = new Coords({coords: []});
-    group = new Group({id: 'person8681'});
-    view = new GroupView({el: $("#quotelist-container"), model: group});
-    group.fetch({success: function () {
+function showGroup(groupbasetype, groupbaseid) {
+    var group = gl.findWhere({id: groupbasetype + groupbaseid});
+    if (group) {
+        view.model = group;
         view.render();
-    }});
+    } else {
+        group = new Group({id: groupbasetype + groupbaseid,
+                           groupbasetype: groupbasetype,
+                           groupbaseid: groupbaseid});
+        group.fetch({success: function () {
+            view.model = group;
+            view.render();
+        }});
+    }
+}
 
-    plotview = new PlotView({el: $("#svg"), model: coords});
+$(document).ready(function() {
+    view = new GroupView({el: $("#quotelist-container")});
+    // gl.add(group);
+    showGroup('person', 1);
+
+    var coords = new Coords({coords: []});
+    var plotview = new PlotView({el: $("#svg"), model: coords});
     plotview.render();
 
 
     $.ajax({
         dataType: "json",
-        url: "/coords/person8681",
+        url: "/coords/quote1",
         success: function (data) {
             coords.set("coords", data.coords);
         }
