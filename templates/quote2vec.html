@@ -39,6 +39,7 @@
         <div id="content" class="container-fluid">
             <div id="svg-container" >
                 <svg id="svg"></svg>
+                <div id="grouplist-overlay" ></div>
             </div>
             <div id="quotelist-container" >
 
@@ -52,6 +53,7 @@
                 <span><%- quote %></span>
                 <span><%- source %></span>
                 <span><%- person %></span>
+                <button id="addcoords" class="btn btn-primary">Add to graph</button>
             </div>
             <div class="quoteholder"></div>
         </script>
@@ -59,6 +61,9 @@
                 <p class="quote"><%- quote %></p>
                 <p class="person"><%- person %></p>
                 <p class="source"><%- source %></p>
+        </script>
+        <script type="text/template" id="grouplist-button-template">
+            <span class="group-name"><%- info %></span> <span class="group-x">X</span>
         </script>
     </body>
 </html>

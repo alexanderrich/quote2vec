@@ -28,9 +28,13 @@ var Coords = Backbone.Model.extend({
     defaults: {'coords': []}
 });
 
+var coords;
 
 var Group = Backbone.Model.extend({
     urlRoot: 'group',
+    defaults: {
+        groupList: null
+    },
     parse: function (response) {
         var resp = {quotes: [],
                 sources: [],
@@ -71,6 +75,9 @@ var GroupView = Backbone.View.extend({
     initialize: function () {
         this.template = _.template($('#group-template').html());
     },
+    events: {
+        'click #addcoords': 'addCoords'
+    },
     render: function () {
         var head,
             quote = '',
@@ -85,12 +92,19 @@ var GroupView = Backbone.View.extend({
                 this.model.get('basemodel').get('person_id')
             ).get('name');
             source = this.model.get('basemodel').get('source');
+            if (source.length > 100) {
+                source = source.substring(0, 97) + '...';
+            }
         } else {
             head = "Quotes similar to";
             person = pl.get(
                 this.model.get('basemodel').get('person_id')
             ).get('name');
             quote = this.model.get('basemodel').get('quote');
+            if (quote.length > 100) {
+                quote = quote.substring(0, 97) + '...';
+            }
+            quote = '"' + quote + '"';
         }
         this.$el.html("");
         this.$el.html(this.template({head: head,
@@ -107,9 +121,58 @@ var GroupView = Backbone.View.extend({
             quoteview.render();
         }
         return this;
+    },
+    addCoords: function () {
+        this.model.get('groupList').add(this.model);
+        updateCoords();
     }
 });
 
+var GroupListGroupView = Backbone.View.extend({
+    model: Group,
+    tagName: 'div',
+    className: 'grouplistgroup',
+    events: {
+        'click .group-name': 'openGroup',
+        'click .group-x': 'removeGroup'
+    },
+    initialize: function () {
+        this.template = _.template($('#grouplist-button-template').html());
+    },
+    render: function () {
+        this.$el.html(this.template({info: this.model.id}));
+        return this;
+    },
+    openGroup: function () {
+        showGroup(this.model.get('groupbasetype'), this.model.get('groupbaseid'));
+    },
+    removeGroup: function () {
+        this.$el.remove();
+        this.model.get('groupList').remove(this.model);
+        updateCoords();
+    }
+});
+
+var GroupListView = Backbone.View.extend({
+    model: GroupList,
+    initialize: function () {
+        this.listenTo(this.model, 'add', this.addOne);
+    },
+    render: function () {
+        var models = this.model.models;
+        this.$el.html("");
+        for(var i = 0; i < models.length; i++) {
+            var m = new GroupListGroupView({model: models[i]});
+            this.$el.append(m.$el);
+            m.render();
+        }
+    },
+    addOne: function (group) {
+        var m = new GroupListGroupView({model: group});
+        this.$el.append(m.$el);
+        m.render();
+    }
+});
 
 var view;
 
@@ -248,6 +311,21 @@ var PlotView = Backbone.View.extend({
     }
 });
 
+function updateCoords() {
+    var groupliststring = _.pluck(gl.models, 'id').join('&');
+    if (groupliststring){
+        $.ajax({
+            dataType: "json",
+            url: "/coords/" + groupliststring,
+            success: function (data) {
+                coords.set('coords', data.coords);
+            }
+        });
+    } else {
+        coords.set('coords', []);
+    }
+}
+
 
 function showGroup(groupbasetype, groupbaseid) {
     var group = gl.findWhere({id: groupbasetype + groupbaseid});
@@ -257,7 +335,8 @@ function showGroup(groupbasetype, groupbaseid) {
     } else {
         group = new Group({id: groupbasetype + groupbaseid,
                            groupbasetype: groupbasetype,
-                           groupbaseid: groupbaseid});
+                           groupbaseid: groupbaseid,
+                           groupList: gl});
         group.fetch({success: function () {
             view.model = group;
             view.render();
@@ -267,19 +346,15 @@ function showGroup(groupbasetype, groupbaseid) {
 
 $(document).ready(function() {
     view = new GroupView({el: $("#quotelist-container")});
-    // gl.add(group);
     showGroup('person', 1);
 
-    var coords = new Coords({coords: []});
+    var grouplistview = new GroupListView({el: $("#grouplist-overlay"),
+                                           model: gl});
+    grouplistview.render();
+
+    coords = new Coords({coords: []});
     var plotview = new PlotView({el: $("#svg"), model: coords});
     plotview.render();
 
 
-    $.ajax({
-        dataType: "json",
-        url: "/coords/quote1",
-        success: function (data) {
-            coords.set("coords", data.coords);
-        }
-    });
 });

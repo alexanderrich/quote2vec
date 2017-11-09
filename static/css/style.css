@@ -63,3 +63,21 @@
     padding: 10px;
     opacity: 0;
 }
+
+#grouplist-overlay {
+    position: absolute;
+    max-width: 400px;
+    top: 0px;
+}
+
+
+.grouplistgroup {
+    background-color: blue;
+    padding: 10px;
+}
+
+.group-x {
+    border: 1px solid black;
+    padding: 5px;
+    margin: 5px;
+}

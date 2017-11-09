@@ -8,7 +8,7 @@ import re
 app = Flask(__name__)
 
 mi = ModelInterface('models/docvecs',
-                    'similarities/dbow300_withgoogle.index')
+                    'similarities/dbow300_normed.index')
 
 @app.route('/')
 @app.route('/index')

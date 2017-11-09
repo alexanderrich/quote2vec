@@ -116,6 +116,8 @@ class ModelInterface:
         return self.dv[id]
 
     def get_vis_coords(self, ids):
-        vecs = np.array([self.get_docvec(i) for i in ids])
+        # vecs = np.array([self.get_docvec(i) for i in ids])
+        vecs = [self.get_docvec(i) for i in ids]
+        vecs = np.array([v / np.linalg.norm(v) for v in vecs])
         coords = PCA(n_components=2).fit_transform(vecs)
         return coords
