@@ -1,3 +1,4 @@
+var colors = d3.scaleOrdinal(d3.schemeCategory10);
 
 var Person = Backbone.Model.extend({
 });
@@ -141,6 +142,7 @@ var GroupListGroupView = Backbone.View.extend({
     },
     render: function () {
         this.$el.html(this.template({info: this.model.id}));
+        this.$el.css('background-color', colors(this.model.id));
         return this;
     },
     openGroup: function () {
@@ -214,7 +216,7 @@ var QuoteView = Backbone.View.extend({
 });
 
 
-var Scatter = function (element, data) {
+var Scatter = function (element, data, colors) {
 
     var xValue = function(d){ return d.coords[0]; },
         size = _.min([$('#svg').width(), $('#svg').height()]),
@@ -224,7 +226,7 @@ var Scatter = function (element, data) {
         yScale = d3.scaleLinear().range([40, size-40]),
         yMap = function(d) {return yScale(yValue(d));},
         cValue = function(d) {return d.group; },
-        color = d3.scaleOrdinal(d3.schemeCategory10),
+        color = colors,
         svg = d3.select(element).append('g'),
         points,
         datakey = function(d, i) {return d.group + "_" + d.quote; };
@@ -304,7 +306,7 @@ var PlotView = Backbone.View.extend({
         this.listenTo(this.model, 'change', this.update);
     },
     render: function () {
-        this.scatter = new Scatter(this.el, this.model.get("coords"));
+        this.scatter = new Scatter(this.el, this.model.get("coords"), colors);
     },
     update: function () {
         this.scatter.update(this.model.get("coords"));
@@ -344,9 +346,9 @@ function showGroup(groupbasetype, groupbaseid) {
     }
 }
 
+
 $(document).ready(function() {
     view = new GroupView({el: $("#quotelist-container")});
-    showGroup('person', 1);
 
     var grouplistview = new GroupListView({el: $("#grouplist-overlay"),
                                            model: gl});
@@ -357,4 +359,48 @@ $(document).ready(function() {
     plotview.render();
 
 
+    var bloodhound_maker = function (url_base) {
+        return new Bloodhound({
+            datumTokenizer: Bloodhound.tokenizers.obj.whitespace('name'),
+            queryTokenizer: Bloodhound.tokenizers.whitespace,
+            remote: {
+                url: url_base + '/%QUERY',
+                wildcard: '%QUERY'
+            }
+        });
+    };
+
+    var suggestions = {
+        person: bloodhound_maker('/person_search'),
+        source: bloodhound_maker('/source_search'),
+        quote: bloodhound_maker('/quote_search')
+    };
+
+    var searchtype = 'person';
+
+    var build_typeahead = function (source_suggestions) {
+        $('#searchfield').typeahead({highlight: true},
+                                    {name: 'suggestions',
+                                     display: 'value',
+                                     source: source_suggestions});
+    };
+
+    $('.btn-group label').click(function () {
+        if (searchtype !== $(this).attr('id')) {
+            searchtype = $(this).attr('id');
+            $('#searchfield').typeahead('destroy');
+            build_typeahead(suggestions[searchtype]);
+        }
+    });
+
+    build_typeahead(suggestions['person']);
+
+
+    $('#searchfield').bind('typeahead:select', function(ev, suggestion) {
+        showGroup(searchtype, suggestion.id);
+        $('#searchfield').typeahead('destroy');
+        $('#searchfield').val('');
+        var chosen = $('.btn-group label.active input').attr('id');
+        build_typeahead(suggestions[searchtype]);
+    });
 });

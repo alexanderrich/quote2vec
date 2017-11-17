@@ -1,5 +1,7 @@
 from db import Quote, Source, Person, Session
-# from sqlalchemy import and_
+from sqlalchemy_fulltext import FullTextSearch
+import sqlalchemy_fulltext.modes as FullTextMode
+from sqlalchemy.sql.expression import func
 from gensim.models import KeyedVectors
 from gensim.similarities import Similarity
 import numpy as np
@@ -30,6 +32,48 @@ class ModelInterface:
     #                   .one())
     #         quote =
 
+    def get_person_suggestions(self, query, n=10):
+        session = Session()
+        query_ft = query
+        for char in '()+-*~@<>"':
+            query_ft = query_ft.replace(char, ' ')
+        people = (session.query(Person)
+                  .filter(FullTextSearch(query_ft + '*', Person, FullTextMode.BOOLEAN))
+                  .filter(Person.name.like('%'+query.strip()+'%'))
+                  .order_by(func.length(Person.name))
+                  .limit(n)
+                  .all())
+        session.close()
+        return people
+
+    def get_source_suggestions(self, query, n=10):
+        session = Session()
+        query_ft = query
+        for char in '()+-*~@<>"':
+            query_ft = query_ft.replace(char, ' ')
+        sources = (session.query(Source)
+                   .filter(FullTextSearch(query_ft + '*', Source, FullTextMode.BOOLEAN))
+                   .filter(Source.source.like('%'+query.strip()+'%'))
+                   .order_by(func.length(Source.source))
+                   .limit(n)
+                   .all())
+        session.close()
+        return sources
+
+    def get_quote_suggestions(self, query, n=10):
+        session = Session()
+        query_ft = query
+        for char in '()+-*~@<>"':
+            query_ft = query.replace(char, ' ')
+        quotes = (session.query(Quote)
+                  .filter(FullTextSearch(query_ft + '*', Quote, FullTextMode.BOOLEAN))
+                  .filter(Quote.quote.like('%'+query.strip()+'%'))
+                  .order_by(func.length(Quote.quote))
+                  .limit(n)
+                  .all())
+        session.close()
+        return quotes
+
     def get_quote(self, id):
         session = Session()
         quote = (session.query(Quote)
@@ -43,6 +87,7 @@ class ModelInterface:
                       .filter(Source.id == quote.source_id)
                       .one())
             return [quote], [source], [person]
+        session.close()
         return [quote], [], [person]
 
     def get_source_quotes(self, id):
@@ -56,6 +101,7 @@ class ModelInterface:
         person = (session.query(Person)
                   .filter(Person.id == source.person_id)
                   .one())
+        session.close()
         return quotes, [source], [person]
 
     def get_person_quotes(self, id):
@@ -69,6 +115,7 @@ class ModelInterface:
         person = (session.query(Person)
                   .filter(Person.id == id)
                   .one())
+        session.close()
         return quotes, source, [person]
 
     def get_similar_quotes(self, id, n=25):
@@ -78,13 +125,14 @@ class ModelInterface:
         ids = [i[0]+1 for i in sims]
         session = Session()
         quotes = session.query(Quote).filter(Quote.id.in_(ids)).all()
+        quotes_dict = {q.id: q for q in quotes}
+        quotes = [quotes_dict[i] for i in ids]
         source_ids = set([q.source_id for q in quotes if q.source_id is not None])
         sources = session.query(Source).filter(Source.id.in_(source_ids)).all()
         person_ids = set([q.person_id for q in quotes])
         people = session.query(Person).filter(Person.id.in_(person_ids)).all()
         session.close()
         return quotes, sources, people
-
 
     # def get_quotes(self, person_name, source_name=None):
     #     session = Session()

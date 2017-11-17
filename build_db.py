@@ -63,12 +63,17 @@ def add_data(name):
 try:
     with open('raw/_people_list_.txt', 'r') as f:
         people_pages = f.readlines()
-    people_pages = [p.strip() for p in people_pages]
+    people_pages = [p.strip() for p in people_pages ]
+    people_pages = [p for p in people_pages if p not in
+                    ['Anonymous', 'Rani Mukerji', 'Sappho', 'George Herbert',
+                     'Noel Fielding', 'Giovanni Rucellai']]
     print("loaded people list from disk")
 except:
     people_pages = get_all_people_pages()
     # Get rid of a few weirdly formatted pages
-    people_pages = [p for p in people_pages if p not in ['Anonymous', 'Rani Mukerji', 'Sappho', 'George Herbert', 'Noel Fielding']]
+    people_pages = [p for p in people_pages if p not in
+                    ['Anonymous', 'Rani Mukerji', 'Sappho', 'George Herbert',
+                     'Noel Fielding', 'Giovanni Rucellai']]
     people_pages = set(people_pages)
     with open('raw/_people_list_.txt', 'w') as f:
         f.writelines(['{}\n'.format(item) for item in people_pages])

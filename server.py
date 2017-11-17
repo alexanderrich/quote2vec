@@ -1,7 +1,7 @@
 from flask import Flask, request, render_template, jsonify
 from model_interface import ModelInterface
-from db import Quote, Source, Person, Session
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy_fulltext import FullTextSearch
 import re
 
 
@@ -15,22 +15,15 @@ mi = ModelInterface('models/docvecs',
 def index():
     return render_template('quote2vec.html')
 
-@app.route('/testing')
-def testing():
-    returnstr = ''
-    for q in mi.get_quotes('Abraham Lincoln'):
-        returnstr = returnstr + '\n' + str(q)
-    return returnstr
-
-@app.route('/person/<int:id>')
-def get_person(id):
-    session = Session()
-    person = (session.query(Person)
-              .filter(Person.id == id)
-              .one())
-    response = {'name': person.name,
-                'id': person.id}
-    return jsonify(response)
+# @app.route('/person/<int:id>')
+# def get_person(id):
+#     session = Session()
+#     person = (session.query(Person)
+#               .filter(Person.id == id)
+#               .one())
+#     response = {'name': person.name,
+#                 'id': person.id}
+#     return jsonify(response)
 
 @app.route('/group/<groupid>')
 def get_quote_group(groupid):
@@ -90,6 +83,26 @@ def get_group_coords(groupstring):
     response = {'coords': resp_array}
     return jsonify(response)
 
+
+@app.route('/person_search/<query>')
+def get_person_suggestions(query):
+    people = mi.get_person_suggestions(query)
+    people = [{'value': p.name, 'id': p.id} for p in people]
+    return jsonify(people)
+
+
+@app.route('/source_search/<query>')
+def get_sources_suggestions(query):
+    sources = mi.get_source_suggestions(query)
+    sources = [{'value': s.source, 'id': s.id} for s in sources]
+    return jsonify(sources)
+
+
+@app.route('/quote_search/<query>')
+def get_quote_suggestions(query):
+    quotes = mi.get_quote_suggestions(query)
+    quotes = [{'value': q.quote, 'id': q.id} for q in quotes]
+    return jsonify(quotes)
 
 if __name__ == '__main__':
     host = "0.0.0.0"
