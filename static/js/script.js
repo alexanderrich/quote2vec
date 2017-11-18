@@ -229,24 +229,45 @@ var Scatter = function (element, data, colors) {
         color = colors,
         svg = d3.select(element).append('g'),
         points,
-        datakey = function(d, i) {return d.group + "_" + d.quote; };
+        datakey = function(d, i) {return d.group + "_" + d.quote; },
+        olddata = data,
+        olddatadict = {};
 
-    xScale.domain([d3.min(data, xValue), d3.max(data, xValue)]);
-    yScale.domain([d3.min(data, yValue), d3.max(data, yValue)]);
+    xScale.domain([d3.min(data, xValue) - .05, d3.max(data, xValue) + .05]);
+    yScale.domain([d3.min(data, yValue) - .05, d3.max(data, yValue) + .05]);
 
     points = svg.selectAll('circle');
 
     points.data(data, datakey)
         .call(enterDots);
 
+    _.each(data, function (d, i) {
+        olddatadict[d.group + '_' + d.quote] = i;
+    });
 
     this.update = function(data) {
-        for (var i = 0; i<data.length;i++){
-            data[i].coords[0] = data[i].coords[0];
+        var datadict = {};
+        _.each(data, function (d, i) {
+            datadict[d.group + '_' + d.quote] = i;
+        });
+        for (var i = 0; i<2;i++){
+            var sum = 0;
+            _.each(olddatadict, function (v, k) {
+                if(datadict[k]) {
+                    sum += data[datadict[k]].coords[i] * olddata[olddatadict[k]].coords[i];
+                }
+            });
+            if (sum < 0) {
+                for(var j = 0; j<data.length; j++){
+                    data[j].coords[i] = -data[j].coords[i];
+                }
+            }
         }
+        olddata = data;
+        olddatadict = datadict;
 
-        xScale.domain([d3.min(data, xValue), d3.max(data, xValue)]);
-        yScale.domain([d3.min(data, yValue), d3.max(data, yValue)]);
+        xScale.domain([d3.min(data, xValue) - .05, d3.max(data, xValue) + .05]);
+        yScale.domain([d3.min(data, yValue) - .05, d3.max(data, yValue) + .05]);
         svg.selectAll('circle').data(data, datakey)
             .call(exitDots)
             .call(updateDots)

@@ -167,5 +167,7 @@ class ModelInterface:
         # vecs = np.array([self.get_docvec(i) for i in ids])
         vecs = [self.get_docvec(i) for i in ids]
         vecs = np.array([v / np.linalg.norm(v) for v in vecs])
-        coords = PCA(n_components=2).fit_transform(vecs)
-        return coords
+        if len(ids) == 1:
+            return np.array([[0, 0]])
+        else:
+            return PCA(n_components=2).fit_transform(vecs)
