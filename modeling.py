@@ -1,8 +1,8 @@
 from db import Quote, Session
-import spacy
 from gensim import corpora, models, similarities
 from random import shuffle
 import numpy as np
+import spacy
 nlp = spacy.load('en')
 
 
@@ -14,10 +14,18 @@ def build_corpus(filename=None):
 
     def lemma(t):
         if t.lemma_ == "-PRON-":
-            return str(t)
+            return str(t).lower()
         else:
-            return t.lemma_
-    parsed = [[lemma(q) for q in nlp(quote.replace("’", "'").replace("—", " ").replace("-", " ")) if q.pos_ not in ['PUNCT', 'SPACE']] for quote in quotes]
+            return t.lemma_.replace(' ', '_').lower()
+
+    def spacify(quote):
+        spacy_quote = nlp(quote.replace("’", "'").replace("—", " ").replace("-", " ").replace("|", " "))
+        for ent in spacy_quote.ents:
+            if ent.label_ in ['PERSON', 'GPE']:
+                ent.merge(ent.root.tag_, ent.text, ent.label_)
+        return spacy_quote
+
+    parsed = [[lemma(q) for q in spacify(quote) if q.pos_ not in ['PUNCT', 'SPACE']] for quote in quotes]
     # idx2id = {i: original[i].id for i in range(len(original))}
     quoteid = [q.id for q in original]
     sourceid = [q.source_id for q in original]
@@ -102,19 +110,22 @@ class BaseModel:
         for i in sample:
             # sims = self.index[self.transformed[i]]
             sims = self.index.similarity_by_id(self.id2idx[i])
-            m_all = np.mean(sims)
-            sd = np.std(sims)
+            # m_all = np.mean(sims)
+            # sd = np.std(sims)
             ids = quote2personquotes[i]
             idxs = [self.id2idx[id] for id in ids if id != i]
             if len(idxs):
-                m_person = np.mean(np.array(sims)[idxs])
-                persondiffs.append((m_person-m_all)/sd)
+                sample_control = np.random.choice(sims)
+                # m_person = np.mean(np.array(sims)[idxs])
+                sample_person = np.random.choice(np.array(sims)[idxs])
+                persondiffs.append(sample_person > sample_control)
             if i in quote2sourcequotes:
                 ids = quote2sourcequotes[i]
                 idxs = [self.id2idx[id] for id in ids if id != i]
                 if len(idxs):
-                    m_source = np.mean(np.array(sims)[idxs])
-                    sourcediffs.append((m_source-m_all)/sd)
+                    sample_control = np.random.choice(sims)
+                    sample_source = np.random.choice(np.array(sims)[idxs])
+                    sourcediffs.append(sample_source > sample_control)
         persondiff = np.mean(persondiffs)
         sourcediff = np.mean(sourcediffs)
         diff = (sourcediff + persondiff) / 2
@@ -159,15 +170,22 @@ class Doc2VecWrapper(BaseModel):
 
     def train(self, alpha):
         shuffle(self.taggeddocs)
+        train_docs = []
+        for d in self.taggeddocs:
+           words = d.words
+           newwords = np.random.choice(words, int(np.round(8 * np.sqrt(len(words)))))
+           train_docs.append(models.doc2vec.TaggedDocument(words, d.tags))
         self.model.alpha = alpha
         self.model.min_alpha = alpha
-        self.model.train(self.taggeddocs, total_examples=self.model.corpus_count, epochs=1)
+        # self.model.train(self.taggeddocs, total_examples=self.model.corpus_count, epochs=1)
+        self.model.train(train_docs, total_examples=self.model.corpus_count, epochs=1)
         print("finished epoch")
 
     def finish_training(self):
         self.model.save('models/'+self.name+'.model')
         self.transformed = self.model.docvecs[[x[0] for x in self.parsed]]
-        self.index = similarities.Similarity('similarities/'+self.name, self.transformed, self.transformed.shape[1])
+        normalized = [v / np.sqrt(np.linalg.norm(v)) for v in self.transformed]
+        self.index = similarities.Similarity('similarities/'+self.name, normalized, self.transformed.shape[1])
         self.index.save('similarities/'+self.name+'.index')
 
     def get_docvec(self, id):

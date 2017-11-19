@@ -205,6 +205,8 @@ class Quote:
         def extract_text(x):
             if type(x).__name__ == "NavigableString":
                 return x
+            elif x.name == 'br':
+                return '\n'
             else:
                 return x.get_text()
 
@@ -223,11 +225,24 @@ class Quote:
                     parts.append(c)
             return parts
 
-        def is_english(quote):
-            if ('en' in [x.lang for x in langdetect.detect_langs(quote)]) or (langid.classify(quote)[0]=='en'):
-                return True
-            else:
+        def is_english(quote, quote_parts=None):
+            if not len(quote):
                 return False
+            alpha = 'abcdefghijklmnopqrstuvwzyz'
+            spaceless = quote.replace(' ', '')
+            prop_latin = sum(map(lambda x: x in alpha, spaceless.lower())) / len(spaceless)
+            if prop_latin < .6:
+                return False
+            if len(quote) < 60:
+                if quote_parts and len(quote_parts) == 1 and quote_parts[0].name == 'i':
+                    return False
+                else:
+                    return True
+            else:
+                if ('en' in [x.lang for x in langdetect.detect_langs(quote)]) or (langid.classify(quote)[0]=='en'):
+                    return True
+                else:
+                    return False
 
         # get sub-bullets which might include source name
         meta_info = text.ul
@@ -235,7 +250,7 @@ class Quote:
         try:
             quote = ''.join(map(extract_text, quote_parts)).strip()
             # quote in foreign language, try next subbullet
-            if not is_english(quote):
+            if not is_english(quote, quote_parts):
                 if meta_info:
                     bullets = meta_info.find_all('li')
                     quote_parts = get_bullet_parts(bullets[0])
@@ -257,9 +272,12 @@ class Quote:
                     source_parts = get_bullet_parts(meta_info.li)
                     self.potential_source = ''.join(map(extract_text, source_parts)).strip()
             # try to catch things like chapter headings that get through from bad parses
-            badwords = ['p.', 'ch.', 'chapter', 'page', 'chap.']
-            if len(quote) < 25 and sum([(b in quote.lower()) for b in badwords]) > 0:
+            badwords = ['p.', 'pp.', 'ch.', 'chapter', 'page', 'chap.']
+            if len(quote) < 25 and sum([(b in quote.lower().split()) for b in badwords]) > 0:
                 self.invalid = True
+            badwords = ['p.', 'ch.', 'chapter', 'page', 'chap.', 'act']
+            if self.potential_source and sum([self.potential_source.lower().startswith(b) for b in badwords]) > 0:
+                self.potential_source = None
         except Exception as e:
             print(e)
             print(quote_parts, meta_info)
