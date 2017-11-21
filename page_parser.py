@@ -234,7 +234,12 @@ class Quote:
             if prop_latin < .6:
                 return False
             if len(quote) < 60:
-                if quote_parts and len(quote_parts) == 1 and quote_parts[0].name == 'i':
+                textlen = len(''.join([extract_text(x) for x in quote_parts]))
+                try:
+                    italiclen = len(''.join([extract_text(x) for x in quote_parts if x.name=='i']))
+                except:
+                    italiclen = 0
+                if italiclen + 5 > textlen:
                     return False
                 else:
                     return True
@@ -256,7 +261,7 @@ class Quote:
                     quote_parts = get_bullet_parts(bullets[0])
                     quote = ''.join(map(extract_text, quote_parts)).strip()
                     # check if subbullet seems to be in english
-                    if is_english(quote):
+                    if is_english(quote, quote_parts):
                         self.quote = ''.join(map(extract_text, quote_parts)).strip()
                         if len(bullets) > 1:
                             source_parts = get_bullet_parts(bullets[1])
@@ -274,6 +279,8 @@ class Quote:
             # try to catch things like chapter headings that get through from bad parses
             badwords = ['p.', 'pp.', 'ch.', 'chapter', 'page', 'chap.']
             if len(quote) < 25 and sum([(b in quote.lower().split()) for b in badwords]) > 0:
+                self.invalid = True
+            if ('\\displaystyle' in quote):
                 self.invalid = True
             badwords = ['p.', 'ch.', 'chapter', 'page', 'chap.', 'act']
             if self.potential_source and sum([self.potential_source.lower().startswith(b) for b in badwords]) > 0:

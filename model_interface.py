@@ -114,6 +114,11 @@ class ModelInterface:
         sims = sorted(enumerate(sims), key=lambda item: -item[1])
         sims = sims[:n]
         ids = [i[0]+1 for i in sims]
+        # make sure actual quote is present as most similar item
+        ids = [i for i in ids if i != id]
+        ids = [id] + ids
+        ids = ids[:n]
+        # retrieve actual quotes
         session = Session()
         quotes = session.query(Quote).filter(Quote.id.in_(ids)).all()
         quotes_dict = {q.id: q for q in quotes}

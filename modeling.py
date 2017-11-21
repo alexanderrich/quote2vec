@@ -15,14 +15,16 @@ def build_corpus(filename=None):
     def lemma(t):
         if t.lemma_ == "-PRON-":
             return str(t).lower()
-        else:
-            return t.lemma_.replace(' ', '_').lower()
+        if t.lemma_ == 'i.':
+            return 'i'
+        return t.lemma_
 
     def spacify(quote):
-        spacy_quote = nlp(quote.replace("’", "'").replace("—", " ").replace("-", " ").replace("|", " "))
-        for ent in spacy_quote.ents:
-            if ent.label_ in ['PERSON', 'GPE']:
-                ent.merge(ent.root.tag_, ent.text, ent.label_)
+        quote = quote.replace("’", "'").replace("—", " ").replace("-", " ").replace("|", " ")
+        replacespace = '\\`*_{}[]()<>@^#+~-!?:;|'
+        for ch in replacespace:
+            quote = quote.replace(ch, ' ')
+        spacy_quote = nlp(quote)
         return spacy_quote
 
     parsed = [[lemma(q) for q in spacify(quote) if q.pos_ not in ['PUNCT', 'SPACE']] for quote in quotes]
@@ -40,7 +42,7 @@ def build_corpus(filename=None):
                          for i in range(len(parsedstrings))]
         with open(filename, 'w') as f:
             f.writelines(parsedstrings)
-    return list(zip(quoteid, sourceid, personid, parsedstrings))
+    return list(zip(quoteid, sourceid, personid, parsed))
 
 
 def load_corpus(filename):
