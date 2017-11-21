@@ -109,7 +109,7 @@ var GroupView = Backbone.View.extend({
         }
         this.$el.html("");
         this.$el.html(this.template({head: head,
-                                     quote: quote,
+                                     quote: quote.replace(/\n+/g, ' / '),
                                      source: source,
                                      person: person
                                     }));
@@ -201,7 +201,7 @@ var QuoteView = Backbone.View.extend({
         }
         this.$el.html(this.template({person: person,
                                      source: source,
-                                     quote: this.model.get('quote')}));
+                                     quote: this.model.get('quote').replace(/\n+/g, '<br \>')}));
         return this;
     },
     clickQuote: function () {
@@ -226,17 +226,32 @@ var Scatter = function (element, data, colors) {
         yScale = d3.scaleLinear().range([40, size-40]),
         yMap = function(d) {return yScale(yValue(d));},
         cValue = function(d) {return d.group; },
+        zoom = d3.zoom()
+            .scaleExtent([.5, 10])
+            .on("zoom", zoomed),
         color = colors,
-        svg = d3.select(element).append('g'),
+        svg = d3.select(element).append('g').call(zoom),
         points,
         datakey = function(d, i) {return d.group + "_" + d.quote; },
         olddata = data,
         olddatadict = {};
 
+    var rect = svg.append("rect")
+        // .attr("width", $('#svg').width())
+        // .attr("height", $('#svg').height())
+        .attr('width', '100%')
+        .attr('height', '100%')
+        // .attr('viewbox', '0 0 100 100')
+        .style("fill", "None")
+        .style("pointer-events", "all");
+
+    var container = svg.append("g");
+
+
     xScale.domain([d3.min(data, xValue) - .05, d3.max(data, xValue) + .05]);
     yScale.domain([d3.min(data, yValue) - .05, d3.max(data, yValue) + .05]);
 
-    points = svg.selectAll('circle');
+    points = container.selectAll('circle');
 
     points.data(data, datakey)
         .call(enterDots);
@@ -268,34 +283,49 @@ var Scatter = function (element, data, colors) {
 
         xScale.domain([d3.min(data, xValue) - .05, d3.max(data, xValue) + .05]);
         yScale.domain([d3.min(data, yValue) - .05, d3.max(data, yValue) + .05]);
-        svg.selectAll('circle').data(data, datakey)
+        container.selectAll('circle').data(data, datakey)
             .call(exitDots)
             .call(updateDots)
             .call(enterDots);
     };
 
+    function zoomed() {
+        container.attr("transform", d3.event.transform);
+        d3.selectAll('.dot').attr('r', 7/d3.event.transform.k);
+    }
+
     function enterDots(selection){
         var empty = $("#svg").find('.dot').length == 0,
             duration = empty ? 500 : 500,
             delay = empty ? 0 : 500;
+        var k = d3.zoomTransform(svg.node()).k;
         selection.enter().append('circle')
             .attr('class', 'dot')
-            .attr('r', 7)
+            .attr('r', 7/k)
             .attr('cx', xMap)
             .attr('cy', yMap)
             .style('opacity', 0)
             .on('mouseover', function(d) {
                 var quote = ql.get(d.quote);
                 var popupview = new QuoteView({model: quote, className: 'popup', el: $("#popup")});
+                if(d3.event.pageY > $(document).height() / 2) {
+                    d3.select('#popup')
+                        .style('opacity', 1)
+                        .style("left", (d3.event.pageX + 10) + "px")
+                        .style('bottom', ($(document).height()-d3.event.pageY) + "px");
+                } else {
+                    d3.select('#popup')
+                        .style('opacity', 1)
+                        .style("left", (d3.event.pageX + 10) + "px")
+                        .style('top', d3.event.pageY + "px");
+                }
                 popupview.render();
-                d3.select('#popup')
-                    .style('opacity', 1)
-                    .style("left", (d3.event.pageX + 10) + "px")
-                    .style("top", (d3.event.pageY) + "px");
             })
             .on('mouseout', function () {
                 d3.select('#popup')
-                    .style('opacity', 0);
+                    .style('opacity', 0)
+                    .style('top', null)
+                    .style('bottom', null);
             })
             .transition()
             .duration(duration)

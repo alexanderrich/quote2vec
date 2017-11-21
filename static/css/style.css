@@ -58,13 +58,15 @@
     position: absolute;
     width: 700px;
     pointer-events: none;
-    border: 2px solid black;
+    border: 2px solid gray;
+    border-radius: 10px;
     background-color: white;
     padding: 10px;
     opacity: 0;
 }
 
 #grouplist-overlay {
+    margin: 10px;
     position: absolute;
     max-width: 400px;
     top: 0px;
@@ -76,11 +78,11 @@
     padding: 10px;
 }
 
-.group-x {
-    border: 1px solid black;
-    padding: 5px;
-    margin: 5px;
-}
+/* .group-x { */
+/*     border: 1px solid white; */
+/*     padding: 5px; */
+/*     margin: 5px; */
+/* } */
 
 
 
@@ -97,4 +99,26 @@
     -webkit-box-shadow: 0 5px 10px rgba(0,0,0,.2);
     -moz-box-shadow: 0 5px 10px rgba(0,0,0,.2);
     box-shadow: 0 5px 10px rgba(0,0,0,.2);
+}
+
+.tt-suggestion {
+    padding: 3px 20px;
+    font-size: 18px;
+    line-height: 24px;
+}
+
+
+.tt-suggestion.tt-cursor {
+    color: #fff;
+    background-color: #0097cf;
+
+}
+
+.grouplistgroup {
+    border-radius: 5px;
+    color: white;
+}
+
+.btn-group {
+    margin-right: 10px;
 }
