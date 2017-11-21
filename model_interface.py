@@ -14,23 +14,14 @@ class ModelInterface:
         self.dv = KeyedVectors.load(docvec_filename)
         self.index = Similarity.load(index_filename)
 
-    # def get_quotes_byid(self, id, id_type='quote'):
-    #     session = Session()
-    #     if id_type=='quote':
-    #         quote = (session.query(Quote)
-    #                  .filter(Quote.id == id)
-    #                  .one())
-    #         person = (session.query(Person)
-    #                   .filter(Person.id == quote.person_id)
-    #                   .one())
-    #         source = (session.query(Source)
-    #                   .filter(Person.id == quote.person_id)
-    #                   .one_or_none())
-    #     if id_type == 'person':
-    #         person = (session.query(Person)
-    #                   .filter(Person.id == id)
-    #                   .one())
-    #         quote =
+    def get_random(self, randtype):
+        session = Session()
+        types = {'person': Person, 'source': Source, 'quote': Quote}
+        id = (session.query(types[randtype])
+              .order_by(func.random())
+              .limit(1)
+              .one().id)
+        return id
 
     def get_person_suggestions(self, query, n=10):
         session = Session()

@@ -8,22 +8,17 @@ import re
 app = Flask(__name__)
 
 mi = ModelInterface('models/docvecs',
-                    'similarities/dbow300_normed.index')
+                    'similarities/dbow300_piecewise5sample.index')
 
 @app.route('/')
 @app.route('/index')
 def index():
     return render_template('quote2vec.html')
 
-# @app.route('/person/<int:id>')
-# def get_person(id):
-#     session = Session()
-#     person = (session.query(Person)
-#               .filter(Person.id == id)
-#               .one())
-#     response = {'name': person.name,
-#                 'id': person.id}
-#     return jsonify(response)
+@app.route('/random/<randtype>')
+def get_random(randtype):
+    return jsonify({'id': mi.get_random(randtype)})
+
 
 @app.route('/group/<groupid>')
 def get_quote_group(groupid):

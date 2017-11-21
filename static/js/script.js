@@ -410,6 +410,16 @@ $(document).ready(function() {
         if (searchtype !== $(this).attr('id')) {
             searchtype = $(this).attr('id');
             $('#searchfield').typeahead('destroy');
+            if(searchtype === 'person') {
+                $('#searchfield').attr('placeholder',
+                                      'Search people');
+            } else if(searchtype === 'source') {
+                $('#searchfield').attr('placeholder',
+                                      'Search sources');
+            } else {
+                $('#searchfield').attr('placeholder',
+                                      'Search quotes');
+            }
             build_typeahead(suggestions[searchtype]);
         }
     });
@@ -423,5 +433,15 @@ $(document).ready(function() {
         $('#searchfield').val('');
         var chosen = $('.btn-group label.active input').attr('id');
         build_typeahead(suggestions[searchtype]);
+    });
+
+    $('#randombtn').click(function () {
+        $.ajax({
+            dataType: "json",
+            url: "/random/" + searchtype,
+            success: function (data) {
+                showGroup(searchtype, data.id);
+            }
+        });
     });
 });

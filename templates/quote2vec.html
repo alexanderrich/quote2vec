@@ -31,9 +31,7 @@
                         <a class="nav-link " href="#">Github</a>
                     </li>
                 </ul>
-                <form class="form-inline my-2 my-lg-0">
-                    <input id="searchfield" class="form-control mr-sm-2 typeahead" type="text" placeholder="Search" aria-label="Search">
-                    <!-- <button id="searchbutton" class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button> -->
+                <form class="form-inline my-2 my-lg-0" onsubmit="return false">
                     <div class="btn-group" data-toggle="buttons">
                         <label id="person" class="btn btn-secondary active">
                             <input type="radio" name="options" id="option1" autocomplete="off" checked> Person
@@ -45,6 +43,8 @@
                             <input type="radio" name="options" id="option3" autocomplete="off"> Quote
                         </label>
                     </div>
+                    <input id="searchfield" class="form-control mr-sm-2 typeahead" autocomplete="off" type="text" placeholder="Search people" aria-label="Search">
+                    <button id="randombtn" class="btn btn-success" >Random </button>
                 </form>
             </div>
 
