@@ -31,9 +31,10 @@
 
 .groupholder {
     /* height: 15%; */
+    background-color: #EEE;
     flex: 0 1 auto;
     padding: 10px;
-    border-bottom: 3px solid gray;
+    border-bottom: 1px solid gray;
 }
 
 #svg-container {
@@ -68,7 +69,6 @@
 #grouplist-overlay {
     margin: 10px;
     position: absolute;
-    max-width: 400px;
     top: 0px;
 }
 
@@ -76,6 +76,8 @@
 .grouplistgroup {
     background-color: blue;
     padding: 10px;
+    float: left;
+    margin: 3px;
 }
 
 /* .group-x { */
@@ -88,7 +90,8 @@
 
 .tt-menu {
     width: 422px;
-    margin: 12px 0;
+    margin-top: 12px;
+    margin-left: -100px;
     padding: 8px 0;
     background-color: #fff;
     border: 1px solid #ccc;
@@ -122,3 +125,65 @@
 .btn-group {
     margin-right: 10px;
 }
+
+#addcoords {
+    float: right;
+    padding-left: 5px;
+}
+
+.searchtypespan {
+    padding: 3px;
+    color: white;
+    background-color: #868e96;
+    border-radius: 4px;
+}
+
+.randomspan {
+    padding: 3px;
+    color: white;
+    background-color: #28a745;
+    border-radius: 4px;
+}
+
+.searchspan {
+    padding: 3px;
+    color: gray;
+    background-color: white;
+    border: .5px solid gray;
+    border-radius: 4px;
+}
+
+.quote {
+    margin-bottom: 5px;
+    color: darkslategray;
+    font-size: 17px;
+    font-weight: 300;
+}
+
+.person {
+    padding-left: 15px;
+    margin-bottom: 5px;
+    color: gray;
+    font-size: 17px;
+    font-weight: 300;
+}
+
+.source {
+    padding-left: 15px;
+    color: gray;
+    font-size: 17px;
+    font-weight: 300;
+}
+
+.quote:hover {
+    font-weight: 400;
+}
+
+.person:hover {
+    font-weight: 400;
+}
+
+.source:hover {
+    font-weight: 400;
+}
+

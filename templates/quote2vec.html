@@ -55,18 +55,20 @@
                 <div id="grouplist-overlay" ></div>
             </div>
             <div id="quotelist-container" >
-
+            <div class="groupholder">
+                Group by <span class="searchtypespan">Person</span>, <span class="searchtypespan">Source</span>, or <span class="searchtypespan">Quote</span>, then <span class="searchspan">Search</span> or choose <span class="randomspan">Random</span>.
+            </div>
             </div>
         </div>
         <div class="popup" id="popup">
         </div>
         <script type="text/template" id="group-template">
             <div class="groupholder">
-                <span><%- head %></span>
-                <span><%- quote %></span>
-                <span><%- source %></span>
-                <span><%- person %></span>
                 <button id="addcoords" class="btn btn-primary">Add to graph</button>
+                <span><%- head %></span>
+                <span><%= quote %></span>
+                <span><%= source %></span>
+                <span><%- person %></span>
             </div>
             <div class="quoteholder"></div>
         </script>
@@ -76,7 +78,11 @@
                 <p class="source"><%- source %></p>
         </script>
         <script type="text/template" id="grouplist-button-template">
-            <span class="group-name"><%- info %></span> <span class="group-x"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="22" viewBox="0 0 12 16"><g transform="scale(1.2)"><path fill-rule="evenodd" style='fill: white' d="M7.48 8l3.75 3.75-1.48 1.48L6 9.48l-3.75 3.75-1.48-1.48L4.52 8 .77 4.25l1.48-1.48L6 6.52l3.75-3.75 1.48 1.48z"/></g></svg></span>
+            <span class="group-name">
+                <span><%= quote %></span>
+                <span><%= source %></span>
+                <span><%- person %></span>
+</span> <span class="group-x"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="22" viewBox="0 0 12 16"><g transform="scale(1.2)"><path fill-rule="evenodd" style='fill: white' d="M7.48 8l3.75 3.75-1.48 1.48L6 9.48l-3.75 3.75-1.48-1.48L4.52 8 .77 4.25l1.48-1.48L6 6.52l3.75-3.75 1.48 1.48z"/></g></svg></span>
         </script>
     </body>
 </html>

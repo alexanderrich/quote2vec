@@ -96,6 +96,7 @@ var GroupView = Backbone.View.extend({
             if (source.length > 100) {
                 source = source.substring(0, 97) + '...';
             }
+            source = source + ' &ndash;';
         } else {
             head = "Quotes similar to";
             person = pl.get(
@@ -106,6 +107,7 @@ var GroupView = Backbone.View.extend({
                 quote = quote.substring(0, 97) + '...';
             }
             quote = '"' + quote + '"';
+            quote = quote + ' &ndash;';
         }
         this.$el.html("");
         this.$el.html(this.template({head: head,
@@ -135,13 +137,40 @@ var GroupListGroupView = Backbone.View.extend({
     className: 'grouplistgroup',
     events: {
         'click .group-name': 'openGroup',
-        'click .group-x': 'removeGroup'
+        'click .group-x': 'removeGroup',
+        'mouseover': 'highlightGroup',
+        'mouseout': 'unhighlightGroup'
     },
     initialize: function () {
         this.template = _.template($('#grouplist-button-template').html());
     },
     render: function () {
-        this.$el.html(this.template({info: this.model.id}));
+        var quote = '',
+            source = '',
+            person;
+        if (this.model.get('groupbasetype') === 'person') {
+            person = this.model.get('basemodel').get('name');
+        } else if (this.model.get('groupbasetype') === 'source') {
+            person = pl.get(
+                this.model.get('basemodel').get('person_id')
+            ).get('name');
+            source = this.model.get('basemodel').get('source');
+            if (source.length > 20) {
+                source = source.substring(0, 17) + '...';
+            }
+            source = source + " &ndash;";
+        } else {
+            person = pl.get(
+                this.model.get('basemodel').get('person_id')
+            ).get('name');
+            quote = this.model.get('basemodel').get('quote');
+            if (quote.length > 20) {
+                quote = quote.substring(0, 17) + '...';
+            }
+            quote = '"' + quote + '"';
+            quote = quote + " &ndash;";
+        }
+        this.$el.html(this.template({quote: quote, source: source, person: person}));
         this.$el.css('background-color', colors(this.model.id));
         return this;
     },
@@ -150,8 +179,23 @@ var GroupListGroupView = Backbone.View.extend({
     },
     removeGroup: function () {
         this.$el.remove();
+        this.unhighlightGroup();
         this.model.get('groupList').remove(this.model);
         updateCoords();
+    },
+    highlightGroup: function () {
+        d3.selectAll('.dot')
+            .style('opacity', .3);
+        var points = d3.selectAll('.dotgroup_'+this.model.id);
+        if (!points.empty()) {
+            points.style('opacity', 1)
+                .style('stroke', 'black');
+        }
+    },
+    unhighlightGroup: function () {
+        d3.selectAll('.dot')
+            .style('opacity', .8)
+            .style('stroke', null);
     }
 });
 
@@ -182,13 +226,17 @@ var QuoteView = Backbone.View.extend({
     model: Quote,
     tagName: "div",
     className: "quotediv",
+    attributes: function () {
+        return {id: 'quotediv_' + this.model.id};
+    },
     events: {
         'click .quote': 'clickQuote',
         'click .source': 'clickSource',
-        'click .person': 'clickPerson'
+        'click .person': 'clickPerson',
+        'mouseover': 'highlightPoint',
+        'mouseout': 'unhighlightPoint'
     },
     initialize: function () {
-        this.id = "quotediv" + this.model.id;
         this.template = _.template($("#quote-template").html());
     },
     render: function () {
@@ -212,6 +260,22 @@ var QuoteView = Backbone.View.extend({
     },
     clickPerson: function () {
         showGroup('person', this.model.get('person_id'));
+    },
+    highlightPoint: function () {
+        this.$el.css("background-color", "AliceBlue");
+        d3.selectAll('.dot')
+            .style('opacity', .3);
+        var point = d3.select('.dotquote_'+this.model.id);
+        if (!point.empty()) {
+            point.style('opacity', 1)
+                .style('stroke', 'black');
+        }
+    },
+    unhighlightPoint: function () {
+        this.$el.css("background-color", "white");
+        d3.selectAll('.dot')
+            .style('opacity', .8)
+            .style('stroke', null);
     }
 });
 
@@ -291,7 +355,8 @@ var Scatter = function (element, data, colors) {
 
     function zoomed() {
         container.attr("transform", d3.event.transform);
-        d3.selectAll('.dot').attr('r', 7/d3.event.transform.k);
+        d3.selectAll('.dot').attr('r', 7/d3.event.transform.k)
+            .style('stroke-width', 2/d3.event.transform.k);
     }
 
     function enterDots(selection){
@@ -300,13 +365,25 @@ var Scatter = function (element, data, colors) {
             delay = empty ? 0 : 500;
         var k = d3.zoomTransform(svg.node()).k;
         selection.enter().append('circle')
-            .attr('class', 'dot')
+            .attr('class', function(d){return 'dot dotgroup_' + d.group +
+                                       ' dotquote_' + d.quote; })
             .attr('r', 7/k)
             .attr('cx', xMap)
             .attr('cy', yMap)
+            .style('stroke-width', 2/k)
+            .style('stroke', null)
             .style('opacity', 0)
+            .on('click', function (d) {
+                var substrings = d.group.match(/[a-zA-Z]+|[0-9]+/g);
+                showGroup(substrings[0], substrings[1]);
+                $('.quoteholder').prop({ scrollTop: -30 - $('.groupholder').height() + $('#quotediv_'+d.quote).position().top });
+                $('#quotediv_'+d.quote).css("background-color", "AliceBlue");
+            })
             .on('mouseover', function(d) {
+                $('#quotediv_'+d.quote).css("background-color", "AliceBlue");
                 var quote = ql.get(d.quote);
+                d3.select(this)
+                    .style('stroke', 'black');
                 var popupview = new QuoteView({model: quote, className: 'popup', el: $("#popup")});
                 if(d3.event.pageY > $(document).height() / 2) {
                     d3.select('#popup')
@@ -321,7 +398,11 @@ var Scatter = function (element, data, colors) {
                 }
                 popupview.render();
             })
-            .on('mouseout', function () {
+            .on('mouseout', function (d) {
+                $('#quotediv_'+d.quote).css("background-color", 'white');
+                console.log($('#quotediv_'+d.quote).css("background-color"));
+                d3.select(this)
+                    .style('stroke', null);
                 d3.select('#popup')
                     .style('opacity', 0)
                     .style('top', null)
