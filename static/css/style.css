@@ -12,7 +12,7 @@
     position: fixed;
     display: flex;
     flex-flow: column;
-    top: 70px;
+    top: 65px;
     right: 0px;
     bottom: 0px;
     /* padding: 10px; */
@@ -39,7 +39,7 @@
 
 #svg-container {
     position: fixed;
-    top: 60px;
+    top: 65px;
     left: 0px;
     bottom: 0px;
     width: 60%;
@@ -63,6 +63,7 @@
     border-radius: 10px;
     background-color: white;
     padding: 10px;
+    padding-left: 15px;
     opacity: 0;
 }
 
@@ -128,7 +129,7 @@
 
 #addcoords {
     float: right;
-    padding-left: 5px;
+    margin-left: 10px;
 }
 
 .searchtypespan {
@@ -187,3 +188,30 @@
     font-weight: 400;
 }
 
+.groupholder_span {
+    font-size: 18px;
+}
+
+.groupholder_head {
+    font-size: 16px;
+    font-weight: 300;
+}
+
+#popupmessage {
+    font-size: 14px;
+    font-style: italic;
+    color: gray;
+    margin-bottom: 2px;
+    margin-top: -5px;
+    font-weight: 300;
+}
+
+#zoominstructions {
+    position: absolute;
+    bottom: 4px;
+    text-align: center;
+    width: 100%;
+    font-style: italic;
+    color: gray;
+    font-size: 14px;
+}

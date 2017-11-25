@@ -22,7 +22,7 @@
             <div id="navbar" class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav mr-auto">
                     <li class="nav-item active">
-                        <a class="nav-link" href="#">quote2vec <span class="sr-only">(current)</span></a>
+                        <a class="nav-link" href="/">quote2vec <span class="sr-only">(current)</span></a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#">About</a>
@@ -53,6 +53,7 @@
             <div id="svg-container" >
                 <svg id="svg"></svg>
                 <div id="grouplist-overlay" ></div>
+                <div id="zoominstructions">Drag and scroll to pan and zoom</div>
             </div>
             <div id="quotelist-container" >
             <div class="groupholder">
@@ -61,14 +62,16 @@
             </div>
         </div>
         <div class="popup" id="popup">
+            <div id="innerpopup"></div>
+            <p id="popupmessage">click to show in list</p>
         </div>
         <script type="text/template" id="group-template">
             <div class="groupholder">
                 <button id="addcoords" class="btn btn-primary">Add to graph</button>
-                <span><%- head %></span>
-                <span><%= quote %></span>
-                <span><%= source %></span>
-                <span><%- person %></span>
+                <span class='groupholder_head groupholder_span'><%- head %></span>
+                <span class='groupholder_quote groupholder_span'><%= quote %></span>
+                <span class='groupholder_source groupholder_span'><%= source %></span>
+                <span class='groupholder_person groupholder_span'><%- person %></span>
             </div>
             <div class="quoteholder"></div>
         </script>

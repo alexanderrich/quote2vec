@@ -253,13 +253,22 @@ var QuoteView = Backbone.View.extend({
         return this;
     },
     clickQuote: function () {
-        showGroup('quote', this.model.get('id'));
+        var selection = window.getSelection();
+        if(selection.toString().length === 0) {
+            showGroup('quote', this.model.get('id'));
+        }
     },
     clickSource: function () {
-        showGroup('source', this.model.get('source_id'));
+        var selection = window.getSelection();
+        if(selection.toString().length === 0) {
+            showGroup('source', this.model.get('source_id'));
+        }
     },
     clickPerson: function () {
-        showGroup('person', this.model.get('person_id'));
+        var selection = window.getSelection();
+        if(selection.toString().length === 0) {
+            showGroup('person', this.model.get('person_id'));
+        }
     },
     highlightPoint: function () {
         this.$el.css("background-color", "AliceBlue");
@@ -384,7 +393,7 @@ var Scatter = function (element, data, colors) {
                 var quote = ql.get(d.quote);
                 d3.select(this)
                     .style('stroke', 'black');
-                var popupview = new QuoteView({model: quote, className: 'popup', el: $("#popup")});
+                var popupview = new QuoteView({model: quote, className: 'popup', el: $("#innerpopup")});
                 if(d3.event.pageY > $(document).height() / 2) {
                     d3.select('#popup')
                         .style('opacity', 1)
