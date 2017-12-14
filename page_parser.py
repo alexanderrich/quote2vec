@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
 import re
-import langdetect
-import langid
+import enchant
+en_dict = enchant.Dict('en_US')
 
 
 def parse_html(html):
@@ -226,28 +226,38 @@ class Quote:
             return parts
 
         def is_english(quote, quote_parts=None):
-            if not len(quote):
-                return False
+            # reject quotes not in latin alphabet
             alpha = 'abcdefghijklmnopqrstuvwzyz'
             spaceless = quote.replace(' ', '')
+            if not len(spaceless):
+                print(quote)
+                return False
             prop_latin = sum(map(lambda x: x in alpha, spaceless.lower())) / len(spaceless)
             if prop_latin < .6:
+                print(quote)
                 return False
-            if len(quote) < 60:
-                textlen = len(''.join([extract_text(x) for x in quote_parts]))
-                try:
-                    italiclen = len(''.join([extract_text(x) for x in quote_parts if x.name=='i']))
-                except:
-                    italiclen = 0
-                if italiclen + 5 > textlen:
-                    return False
-                else:
-                    return True
+
+            # figure out whether quote is in italics
+            textlen = len(quote)
+            try:
+                italiclen = len(''.join([extract_text(x) for x in quote_parts if x.name=='i']))
+            except:
+                italiclen = 0
+            if italiclen + 5 > textlen:
+                is_italic = True
             else:
-                if ('en' in [x.lang for x in langdetect.detect_langs(quote)]) or (langid.classify(quote)[0]=='en'):
-                    return True
-                else:
-                    return False
+                is_italic = False
+
+            is_en_list = [en_dict.check(s.strip('\'"(){}[].?!-—’,<>')) for s in quote.split() if len(s.strip('\'"(){}[].?!-—’,<>'))]
+            en_proportion = (sum(is_en_list)+2)/len(is_en_list)
+            if en_proportion > .6 and not is_italic:
+                return True
+            elif en_proportion > .8 and is_italic:
+                return True
+            else:
+                print(quote)
+                return False
+
 
         # get sub-bullets which might include source name
         meta_info = text.ul
@@ -257,15 +267,20 @@ class Quote:
             # quote in foreign language, try next subbullet
             if not is_english(quote, quote_parts):
                 if meta_info:
+                    old_quote = quote
                     bullets = meta_info.find_all('li')
                     quote_parts = get_bullet_parts(bullets[0])
                     quote = ''.join(map(extract_text, quote_parts)).strip()
                     # check if subbullet seems to be in english
-                    if is_english(quote, quote_parts):
-                        self.quote = ''.join(map(extract_text, quote_parts)).strip()
-                        if len(bullets) > 1:
-                            source_parts = get_bullet_parts(bullets[1])
-                            self.potential_source = ''.join(map(extract_text, source_parts)).strip()
+                    if is_english(quote, quote_parts) and len(quote) > len(old_quote)*.6:
+                        badwords = ['pp.', 'p.', 'ch.', 'chapter', 'page', 'chap.', 'act', 'book']
+                        if sum([quote.lower().startswith(b) for b in badwords]) > 0:
+                            self.invalid = True
+                        else:
+                            self.quote = quote
+                            if len(bullets) > 1:
+                                source_parts = get_bullet_parts(bullets[1])
+                                self.potential_source = ''.join(map(extract_text, source_parts)).strip()
                     else:
                         self.invalid = True
                 else:
@@ -282,7 +297,7 @@ class Quote:
                 self.invalid = True
             if ('\\displaystyle' in quote):
                 self.invalid = True
-            badwords = ['p.', 'ch.', 'chapter', 'page', 'chap.', 'act']
+            badwords = ['pp.', 'p.', 'ch.', 'chapter', 'page', 'chap.', 'act', 'book']
             if self.potential_source and sum([self.potential_source.lower().startswith(b) for b in badwords]) > 0:
                 self.potential_source = None
         except Exception as e:
