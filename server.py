@@ -7,8 +7,8 @@ import re
 
 app = Flask(__name__)
 
-mi = ModelInterface('models/docvecs',
-                    'similarities/dbow300_piecewise5sample.index')
+mi = ModelInterface('models/dbow300_backto1pt5.model',
+                    'similarities/dbow300_backto1pt5.index')
 
 @app.route('/')
 @app.route('/index')
@@ -44,6 +44,22 @@ def get_quote_group(groupid):
         response = {'quotes': quotes, 'people': people, 'sources': sources}
     except NoResultFound:
         response = {'error': "No result found."}
+    return jsonify(response)
+
+@app.route('/keywords/<keywordstring>')
+def get_keyword_quotes(keywordstring):
+    keywords = keywordstring.split('&')
+    quotes, sources, people = mi.get_keyword_quotes(keywords)
+    quotes = [{'quote': q.quote,
+               'id': q.id,
+               'source_id': q.source_id,
+               'person_id': q.person_id} for q in quotes]
+    people = [{'name': p.name,
+               'id': p.id} for p in people]
+    sources = [{'source': s.source,
+                'id': s.id,
+                'person_id': s.person_id} for s in sources]
+    response = {'quotes': quotes, 'people': people, 'sources': sources}
     return jsonify(response)
 
 @app.route('/coords/<groupstring>')

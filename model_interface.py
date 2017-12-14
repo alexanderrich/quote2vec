@@ -2,7 +2,7 @@ from db import Quote, Source, Person, Session
 from sqlalchemy_fulltext import FullTextSearch
 import sqlalchemy_fulltext.modes as FullTextMode
 from sqlalchemy.sql.expression import func
-from gensim.models import KeyedVectors
+from gensim.models import Doc2Vec
 from gensim.similarities import Similarity
 import numpy as np
 from sklearn.decomposition import PCA
@@ -10,8 +10,9 @@ from sklearn.decomposition import PCA
 
 class ModelInterface:
 
-    def __init__(self, docvec_filename, index_filename):
-        self.dv = KeyedVectors.load(docvec_filename)
+    def __init__(self, model_filename, index_filename):
+        # self.dv = KeyedVectors.load(docvec_filename)
+        self.model = Doc2Vec.load(model_filename)
         self.index = Similarity.load(index_filename)
 
     def get_random(self, randtype):
@@ -110,7 +111,7 @@ class ModelInterface:
         return quotes, source, [person]
 
     def get_similar_quotes(self, id, n=25):
-        sims = self.index[self.dv[id]]
+        sims = self.index[self.model.docvecs[id]]
         sims = sorted(enumerate(sims), key=lambda item: -item[1])
         sims = sims[:n]
         ids = [i[0]+1 for i in sims]
@@ -130,34 +131,29 @@ class ModelInterface:
         session.close()
         return quotes, sources, people
 
-    # def get_quotes(self, person_name, source_name=None):
-    #     session = Session()
-    #     person = (session.query(Person)
-    #               .filter(Person.name == person_name)
-    #               .one_or_none())
-    #     if not person:
-    #         session.close()
-    #         return None
-    #     if source_name is None:
-    #         quote_list = (session.query(Quote)
-    #                       .filter(Quote.person_id == person.id)
-    #                       .all())
-    #     else:
-    #         source = (session.query(Source)
-    #                   .filter(and_(Source.source == source_name,
-    #                                Source.person_id == person.id))
-    #                   .one_or_none())
-    #         if not source:
-    #             session.close()
-    #             return None
-    #         quote_list = (session.query(Quote)
-    #                       .filter(Quote.source_id == source.id)
-    #                       .all())
-    #     session.close()
-    #     return quote_list
+    def get_keyword_quotes(self, keywords, n=25):
+        v = self.model.infer_vector(keywords, steps=300)
+        # sims = self.model.docvecs.most_similar(positive=[v], topn=25)
+        # ids = [int(i[0]) for i in sims]
+        sims = self.index[v]
+        sims = sorted(enumerate(sims), key=lambda item: -item[1])
+        sims = sims[:n]
+        ids = [i[0]+1 for i in sims]
+        # retrieve actual quotes
+        session = Session()
+        quotes = session.query(Quote).filter(Quote.id.in_(ids)).all()
+        quotes_dict = {q.id: q for q in quotes}
+        quotes = [quotes_dict[i] for i in ids]
+        source_ids = set([q.source_id for q in quotes if q.source_id is not None])
+        sources = session.query(Source).filter(Source.id.in_(source_ids)).all()
+        person_ids = set([q.person_id for q in quotes])
+        people = session.query(Person).filter(Person.id.in_(person_ids)).all()
+        session.close()
+        return quotes, sources, people
+
 
     def get_docvec(self, id):
-        return self.dv[id]
+        return self.model.docvecs[id]
 
     def get_vis_coords(self, ids):
         # vecs = np.array([self.get_docvec(i) for i in ids])
