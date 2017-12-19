@@ -31,7 +31,7 @@
                         <a class="nav-link " href="#">Github</a>
                     </li>
                 </ul>
-                <form class="form-inline my-2 my-lg-0" onsubmit="return false">
+                <div class="form-inline my-2 my-lg-0" >
                     <div class="btn-group" data-toggle="buttons">
                         <label id="person" class="btn btn-secondary active">
                             <input type="radio" name="options" id="option1" autocomplete="off" checked> Person
@@ -42,10 +42,13 @@
                         <label id="quote" class="btn btn-secondary">
                             <input type="radio" name="options" id="option3" autocomplete="off"> Quote
                         </label>
+                        <label id="keywords" class="btn btn-secondary">
+                            <input type="radio" name="options" id="option4" autocomplete="off"> Keywords
+                        </label>
                     </div>
                     <input id="searchfield" class="form-control mr-sm-2 typeahead" autocomplete="off" type="text" placeholder="Search people" aria-label="Search">
                     <button id="randombtn" class="btn btn-success" >Random </button>
-                </form>
+                </div>
             </div>
 
         </nav>
@@ -57,7 +60,6 @@
             </div>
             <div id="quotelist-container" >
             <div class="groupholder">
-                Group by <span class="searchtypespan">Person</span>, <span class="searchtypespan">Source</span>, or <span class="searchtypespan">Quote</span>, then <span class="searchspan">Search</span> or choose <span class="randomspan">Random</span>.
             </div>
             </div>
         </div>

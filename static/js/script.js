@@ -9,6 +9,9 @@ var Quote = Backbone.Model.extend({
 var Source = Backbone.Model.extend({
 });
 
+var Keyword = Backbone.Model.extend({
+});
+
 var QuoteList = Backbone.Collection.extend({
     model: Quote
 });
@@ -21,9 +24,14 @@ var PersonList = Backbone.Collection.extend({
     model: Person
 });
 
+var KeywordList = Backbone.Collection.extend({
+    model: Keyword
+});
+
 var ql = new QuoteList();
 var sl = new SourceList();
 var pl = new PersonList();
+var kl = new KeywordList();
 
 var Coords = Backbone.Model.extend({
     defaults: {'coords': []}
@@ -57,8 +65,10 @@ var Group = Backbone.Model.extend({
             resp.basemodel =  pl.get(this.get("groupbaseid"));
         } else if (this.get("groupbasetype") === "source") {
             resp.basemodel =  sl.get(this.get("groupbaseid"));
-        } else {
+        } else if (this.get("groupbasetype") === "quote") {
             resp.basemodel =  ql.get(this.get("groupbaseid"));
+        } else {
+            resp.basemodel = kl.get(this.get('groupbaseid'));
         }
         return resp;
     }
@@ -83,7 +93,7 @@ var GroupView = Backbone.View.extend({
         var head,
             quote = '',
             source = '',
-            person;
+            person = '';
         if (this.model.get('groupbasetype') === 'person') {
             head = "Quotes by";
             person = this.model.get('basemodel').get('name');
@@ -97,7 +107,7 @@ var GroupView = Backbone.View.extend({
                 source = source.substring(0, 97) + '...';
             }
             source = source + ' &ndash;';
-        } else {
+        } else if (this.model.get('groupbasetype') === 'quote') {
             head = "Quotes similar to";
             person = pl.get(
                 this.model.get('basemodel').get('person_id')
@@ -108,6 +118,13 @@ var GroupView = Backbone.View.extend({
             }
             quote = '"' + quote + '"';
             quote = quote + ' &ndash;';
+        } else {
+            head = "Quotes similar to keywords";
+            quote = this.model.get('basemodel').get('keywords');
+            if (quote.length > 100) {
+                quote = quote.substring(0, 97) + '...';
+            }
+            quote = '"' + quote + '"';
         }
         this.$el.html("");
         this.$el.html(this.template({head: head,
@@ -147,7 +164,7 @@ var GroupListGroupView = Backbone.View.extend({
     render: function () {
         var quote = '',
             source = '',
-            person;
+            person = '';
         if (this.model.get('groupbasetype') === 'person') {
             person = this.model.get('basemodel').get('name');
         } else if (this.model.get('groupbasetype') === 'source') {
@@ -159,7 +176,7 @@ var GroupListGroupView = Backbone.View.extend({
                 source = source.substring(0, 17) + '...';
             }
             source = source + " &ndash;";
-        } else {
+        } else if (this.model.get('groupbasetype') === 'quote') {
             person = pl.get(
                 this.model.get('basemodel').get('person_id')
             ).get('name');
@@ -169,6 +186,12 @@ var GroupListGroupView = Backbone.View.extend({
             }
             quote = '"' + quote + '"';
             quote = quote + " &ndash;";
+        } else {
+            quote = this.model.get('basemodel').get('keywords');
+            if (quote.length > 20) {
+                quote = quote.substring(0, 17) + '...';
+            }
+            quote = 'Keywords: "' + quote + '"';
         }
         this.$el.html(this.template({quote: quote, source: source, person: person}));
         this.$el.css('background-color', colors(this.model.id));
@@ -536,23 +559,53 @@ $(document).ready(function() {
             } else if(searchtype === 'source') {
                 $('#searchfield').attr('placeholder',
                                       'Search sources');
-            } else {
+            } else if(searchtype === 'quote'){
                 $('#searchfield').attr('placeholder',
                                       'Search quotes');
+            } else {
+                $('#searchfield').attr('placeholder',
+                                       'Search any text');
             }
-            build_typeahead(suggestions[searchtype]);
+            if (searchtype !== 'keywords') {
+                build_typeahead(suggestions[searchtype]);
+            }
         }
     });
 
     build_typeahead(suggestions['person']);
 
+    $('#searchfield').keypress(function(event){
+        var keycode = (event.keyCode ? event.keyCode : event.which),
+            val = this.value;
+        if(keycode == '13' && searchtype === 'keywords'){
+            $.ajax({
+                dataType: 'json',
+                url: '/keywords/' + val.split(' ').join('&'),
+                success: function (data) {
+                    console.log(data);
+                    console.log('keyword' + data.keyword_id);
+                    var group;
+                    kl.add(new Keyword({id: data.keyword_id, keywords: val}));
+                    group = new Group({id: 'keyword' + data.keyword_id,
+                                       groupbasetype: 'keyword',
+                                       groupbaseid: data.keyword_id,
+                                       groupList: gl});
+                    group.set(group.parse(data));
+                    showGroup('keyword', data.keyword_id);
+                }
+            });
+            this.value = '';
+        }
+    });
 
     $('#searchfield').bind('typeahead:select', function(ev, suggestion) {
         showGroup(searchtype, suggestion.id);
         $('#searchfield').typeahead('destroy');
         $('#searchfield').val('');
         var chosen = $('.btn-group label.active input').attr('id');
-        build_typeahead(suggestions[searchtype]);
+        if(searchtype !== 'keywords') {
+            build_typeahead(suggestions[searchtype]);
+        }
     });
 
     $('#randombtn').click(function () {
