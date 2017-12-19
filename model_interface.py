@@ -1,4 +1,4 @@
-from db import Quote, Source, Person, Session
+from db import Quote, Source, Person, Keyword, Session
 from sqlalchemy_fulltext import FullTextSearch
 import sqlalchemy_fulltext.modes as FullTextMode
 from sqlalchemy.sql.expression import func
@@ -133,14 +133,32 @@ class ModelInterface:
 
     def get_keyword_quotes(self, keywords, n=25):
         v = self.model.infer_vector(keywords, steps=300)
-        # sims = self.model.docvecs.most_similar(positive=[v], topn=25)
-        # ids = [int(i[0]) for i in sims]
         sims = self.index[v]
         sims = sorted(enumerate(sims), key=lambda item: -item[1])
         sims = sims[:n]
         ids = [i[0]+1 for i in sims]
         # retrieve actual quotes
+        quotebytes = np.array(ids).tostring()
+        keyword = Keyword(quotes=quotebytes)
         session = Session()
+        session.add(keyword)
+        session.commit()
+        keyword_id = keyword.id
+        quotes = session.query(Quote).filter(Quote.id.in_(ids)).all()
+        quotes_dict = {q.id: q for q in quotes}
+        quotes = [quotes_dict[i] for i in ids]
+        source_ids = set([q.source_id for q in quotes if q.source_id is not None])
+        sources = session.query(Source).filter(Source.id.in_(source_ids)).all()
+        person_ids = set([q.person_id for q in quotes])
+        people = session.query(Person).filter(Person.id.in_(person_ids)).all()
+        session.close()
+        return quotes, sources, people, keyword_id
+
+    def get_keyword_quotes_cached(self, id):
+        session = Session()
+        keyword = session.query(Keyword).filter(Keyword.id == id).one()
+        ids = np.fromstring(keyword.quotes, dtype=np.int64)
+        ids = [int(id) for id in ids]
         quotes = session.query(Quote).filter(Quote.id.in_(ids)).all()
         quotes_dict = {q.id: q for q in quotes}
         quotes = [quotes_dict[i] for i in ids]
@@ -150,7 +168,6 @@ class ModelInterface:
         people = session.query(Person).filter(Person.id.in_(person_ids)).all()
         session.close()
         return quotes, sources, people
-
 
     def get_docvec(self, id):
         return self.model.docvecs[id]

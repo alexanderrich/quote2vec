@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, LargeBinary
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy_fulltext import FullText
@@ -57,6 +57,12 @@ class Quote(FullText, Base):
             return"<Quote(quote='{}')".format(self.quote[:50])
         else:
             return"<Quote(quote='{}')".format(self.quote)
+
+class Keyword(Base):
+    __tablename__ = 'keywords'
+    id = Column(Integer, primary_key=True)
+    quotes = Column(LargeBinary)
+
 
 
 Session = sessionmaker(bind=engine)

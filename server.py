@@ -32,6 +32,8 @@ def get_quote_group(groupid):
             quotes, sources, people = mi.get_source_quotes(id)
         elif grouptype == 'person':
             quotes, sources, people = mi.get_person_quotes(id)
+        elif grouptype == 'keyword':
+            quotes, sources, people = mi.get_keyword_quotes_cached(id)
         quotes = [{'quote': q.quote,
                    'id': q.id,
                    'source_id': q.source_id,
@@ -49,7 +51,7 @@ def get_quote_group(groupid):
 @app.route('/keywords/<keywordstring>')
 def get_keyword_quotes(keywordstring):
     keywords = keywordstring.split('&')
-    quotes, sources, people = mi.get_keyword_quotes(keywords)
+    quotes, sources, people, keyword_id = mi.get_keyword_quotes(keywords)
     quotes = [{'quote': q.quote,
                'id': q.id,
                'source_id': q.source_id,
@@ -59,7 +61,10 @@ def get_keyword_quotes(keywordstring):
     sources = [{'source': s.source,
                 'id': s.id,
                 'person_id': s.person_id} for s in sources]
-    response = {'quotes': quotes, 'people': people, 'sources': sources}
+    response = {'keyword_id': keyword_id,
+                'quotes': quotes,
+                'people': people,
+                'sources': sources}
     return jsonify(response)
 
 @app.route('/coords/<groupstring>')
@@ -77,6 +82,8 @@ def get_group_coords(groupstring):
             quotes, _, _ = mi.get_source_quotes(g[1])
         elif g[0] == 'person':
             quotes, _, _ = mi.get_person_quotes(g[1])
+        elif g[0] == 'keyword':
+            quotes, _, _ = mi.get_keyword_quotes_cached(g[1])
         grouplists.append([q.id for q in quotes])
     allquotes = [q for l in grouplists for q in l]
     allquotes = list(set(allquotes))
