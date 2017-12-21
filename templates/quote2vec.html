@@ -25,7 +25,10 @@
                         <a class="nav-link" href="/">quote2vec <span class="sr-only">(current)</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">About</a>
+                        <a class="nav-link" data-toggle="modal" data-target="#aboutModal">About</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-toggle="modal" data-target="#instructionsModal">Instructions</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link " href="#">Github</a>
@@ -89,5 +92,62 @@
                 <span><%- person %></span>
 </span> <span class="group-x"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="22" viewBox="0 0 12 16"><g transform="scale(1.2)"><path fill-rule="evenodd" style='fill: white' d="M7.48 8l3.75 3.75-1.48 1.48L6 9.48l-3.75 3.75-1.48-1.48L4.52 8 .77 4.25l1.48-1.48L6 6.52l3.75-3.75 1.48 1.48z"/></g></svg></span>
         </script>
+        <!-- Modals -->
+        <div class="modal fade" id="instructionsModal" tabindex="-1" role="dialog" aria-labelledby="instructionsModalTitle" aria-hidden="true">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title" id="instructionsModalTitle">Instructions</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <p><strong>quote2vec</strong> uses a machine learning technique called <a href="https://cs.stanford.edu/~quocle/paragraph_vector.pdf" target="_blank">doc2vec</a> to let you explore and visualize the world's great quotations (at least, those available on <a href="http://en.wikiquote.org" target="_blank">en.wikiquote.org</a>).</p>
+                        <h5 id="searching">Searching</h2>
+                            <div class="imgdiv"><img src="/static/images/search.png"></img></div>
+                        <p>Use the search field to begin</p>
+                        <ul>
+                            <li><p>Search <span class="searchtypespan">Person</span> or <span class="searchtypespan">Source</span> to view all quotes by a certain person or in a certain book or speech.</p></li>
+                            <li><p>Search <span class="searchtypespan">Quote</span> to view the quotes that <strong>quote2vec</strong> identifies as most similar to the chosen quote.</p></li>
+                            <li><p>Search <span class="searchtypespan">Keywords</span> to view the quotes most similar to any keywords or piece of text.</p></li>
+                        </ul>
+                        <p>When <span class="searchtypespan">Person</span>, <span class="searchtypespan">Source</span>, or <span class="searchtypespan">Quote</span> is selected, click <span class="randomspan">Random</span> to make a choice at random from the wikiquote database.</p>
+                        <h5 id="list-view">List view</h2>
+                            <div class="imgdiv"><img src="/static/images/listview.png"></img></div>
+                        <p>The list view shows all quotes found for the chosen
+                        person, source, quote, or keywords. Click any <strong>quote</strong>,
+                        <strong>source</strong>, or <strong>person</strong> to jump to a new list for the selected
+                        item. Click <span class="addtographspan">Add to graph</span> to add the group of quotes to the graph view.</p>
+                        <h5 id="graph-view">Graph view</h2>
+                            <div class="imgdiv"><img src="/static/images/graphview.png"></img></div>
+                        <p>The graph view lets you visualize groups of quotes. <strong>quote2vec</strong> represents each quote as a point in a high-dimensional space, where quotes that are similar to each other have nearby points. The graph view uses Principal Component Analysis (PCA) to create a useful 2D view of the space.</p>
+                        <p>Once a group of quotes have been added to the graph, you can hover over points to show their corresponding quote, or click a point to highlight it's quote in the list view. You can also drag or scroll the mouse to pan and zoom the graph.</p>
+                        <p>Any number of quote groups can be added to the graph. Pull up the list view of a group on the graph, click it's name on the top of the graph. To remove a group from the graph, click the &quot;X&quot; next to its name.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="aboutModal" tabindex="-1" role="dialog" aria-labelledby="aboutModalTitle" aria-hidden="true">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="aboutModalTitle">About</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        ...
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </body>
 </html>

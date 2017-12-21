@@ -146,6 +146,13 @@
     border-radius: 4px;
 }
 
+.addtographspan {
+    padding: 3px;
+    color: white;
+    background-color: #007bff;
+    border-radius: 4px;
+}
+
 .searchspan {
     padding: 3px;
     color: gray;
@@ -214,4 +221,9 @@
     font-style: italic;
     color: gray;
     font-size: 14px;
+}
+
+.imgdiv {
+    padding: 15px;
+    text-align: center;
 }

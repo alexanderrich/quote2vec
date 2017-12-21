@@ -617,4 +617,6 @@ $(document).ready(function() {
             }
         });
     });
+
+    $('#instructionsModal').modal('show');
 });
