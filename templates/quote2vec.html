@@ -28,10 +28,10 @@
                         <a class="nav-link" data-toggle="modal" data-target="#aboutModal">About</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" data-toggle="modal" data-target="#instructionsModal">Instructions</a>
+                        <a class="nav-link " href="https://github.com/alexanderrich/quote2vec" target="_blank">Github</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link " href="#">Github</a>
+                        <a class="nav-link" data-toggle="modal" data-target="#instructionsModal">Instructions</a>
                     </li>
                 </ul>
                 <div class="form-inline my-2 my-lg-0" >
@@ -97,14 +97,14 @@
             <div class="modal-dialog modal-lg" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h4 class="modal-title" id="instructionsModalTitle">Instructions</h5>
+                        <h3 class="modal-title" id="instructionsModalTitle">Instructions</h5>
                         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
+                            <span class="modalx" aria-hidden="true">&times;</span>
                         </button>
                     </div>
                     <div class="modal-body">
-                        <p><strong>quote2vec</strong> uses a machine learning technique called <a href="https://cs.stanford.edu/~quocle/paragraph_vector.pdf" target="_blank">doc2vec</a> to let you explore and visualize the world's great quotations (at least, those available on <a href="http://en.wikiquote.org" target="_blank">en.wikiquote.org</a>).</p>
-                        <h5 id="searching">Searching</h2>
+                        <p><strong>quote2vec</strong> uses a machine learning technique called <a href="https://cs.stanford.edu/~quocle/paragraph_vector.pdf" target="_blank">doc2vec</a> to let you explore and visualize the world's great quotations (at least, those available on <a href="http://en.wikiquote.org" target="_blank">en.wikiquote.org</a>). Read more about how <strong>quote2vec</strong> works by clicking <strong>About</strong>, or view the code by clicking <strong>github</strong>.</p>
+                        <h4 id="searching">Searching</h2>
                             <div class="imgdiv"><img src="/static/images/search.png"></img></div>
                         <p>Use the search field to begin</p>
                         <ul>
@@ -113,17 +113,17 @@
                             <li><p>Search <span class="searchtypespan">Keywords</span> to view the quotes most similar to any keywords or piece of text.</p></li>
                         </ul>
                         <p>When <span class="searchtypespan">Person</span>, <span class="searchtypespan">Source</span>, or <span class="searchtypespan">Quote</span> is selected, click <span class="randomspan">Random</span> to make a choice at random from the wikiquote database.</p>
-                        <h5 id="list-view">List view</h2>
+                        <h4 id="list-view">List view</h2>
                             <div class="imgdiv"><img src="/static/images/listview.png"></img></div>
                         <p>The list view shows all quotes found for the chosen
                         person, source, quote, or keywords. Click any <strong>quote</strong>,
                         <strong>source</strong>, or <strong>person</strong> to jump to a new list for the selected
                         item. Click <span class="addtographspan">Add to graph</span> to add the group of quotes to the graph view.</p>
-                        <h5 id="graph-view">Graph view</h2>
+                        <h4 id="graph-view">Graph view</h2>
                             <div class="imgdiv"><img src="/static/images/graphview.png"></img></div>
                         <p>The graph view lets you visualize groups of quotes. <strong>quote2vec</strong> represents each quote as a point in a high-dimensional space, where quotes that are similar to each other have nearby points. The graph view uses Principal Component Analysis (PCA) to create a useful 2D view of the space.</p>
-                        <p>Once a group of quotes have been added to the graph, you can hover over points to show their corresponding quote, or click a point to highlight it's quote in the list view. You can also drag or scroll the mouse to pan and zoom the graph.</p>
-                        <p>Any number of quote groups can be added to the graph. Pull up the list view of a group on the graph, click it's name on the top of the graph. To remove a group from the graph, click the &quot;X&quot; next to its name.</p>
+                        <p>Once a group of quotes have been added to the graph, you can hover over points to show their corresponding quote, or click a point to highlight its quote in the list view. You can also drag or scroll the mouse to pan and zoom the graph.</p>
+                        <p>Any number of quote groups can be added to the graph. To pull up the list view of a group on the graph, click it's name on the top of the graph. To remove a group from the graph, click the "X" next to its name.</p>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -135,13 +135,29 @@
             <div class="modal-dialog modal-lg" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="aboutModalTitle">About</h5>
+                        <h3 class="modal-title" id="aboutModalTitle">About</h3>
                         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
+                            <span class="modalx" aria-hidden="true">&times;</span>
                         </button>
                     </div>
                     <div class="modal-body">
-                        ...
+<p><a target="_blank" href="https://en.wikiquote.org/wiki/Main_Page">Wikiquote</a> is an open, community-built repository of over 170,000 quotations from writers and thinkers around the world. quote2vec uses <a target="_blank" href="https://cs.stanford.edu/~quocle/paragraph_vector.pdf">doc2vec</a>, a recent machine learning technique, to map the semantic similarities among these quotes. Its purpose is to provide an intuitive tool to explore the huge &quot;space&quot; of quotes, and encourage the discovery of beautiful ideas or surprising connections.</p>
+<h4 id="how-its-made">How it's made</h4>
+<h5 id="getting-the-data">Getting the data</h5>
+<p>To build quote2vec, I scraped and parsed the quotes from all of the &quot;person&quot; pages on the English Wikiquote. (Wikiquote also has pages devoted to movies, books, and other categories, which I ignored.)</p>
+<p>I coded all of quote2vec's data processing, modeling and backend in python. To retrieve all of the person pages I used <a target="_blank" href="http://docs.python-requests.org/en/master/">requests</a>, relying on wikiquote's &quot;List of people by name&quot; pages to compile a complete list of urls to access.</p>
+<p>Because wikiquote's pages are created by volunteers using a markup language with loose rules, extracting quote text and source names from a page is challenging. In most cases, each quote appears as a bullet. The source of a quote may appear as a section header above the quote, or it might be included as a sub-bullet after the quote. Quotes in a foreign language are supposed to be written in italics, with the English translation in a sub-bullet underneath, but this convention is not always followed.</p>
+<p>To extract quotes and sources as cleanly as possible, I used <a target="_blank" href="https://www.crummy.com/software/BeautifulSoup/">beautifulsoup</a> and recursively parsed the section tree to map sources to quotes. I created a series of heuristics to deal with inconsistencies in formatting. For example, if most quotes in a section have no sub-bullets, the section head is probably the source of the quotes; if they do have sub-bullets, the head is probably a general term like &quot;Early Life&quot; rather than a source. Similarly, I used a combination of cues, including whether italics were used and the proportion of words that appeared in an English dictionary, to determine whether a quote was likely in a foreign language.</p>
+<p>These heuristics are imperfect, but for the most part they succeed in extracting quote–source–person relationships from the raw HTML. This data was then stored in a MySQL database built using <a target="_blank" href="https://www.sqlalchemy.org/">SQLalchemy</a>.</p>
+<h5 id="fitting-a-model">Fitting a model</h5>
+<p>To prepare the text for analysis, I used <a target="_blank" href="https://spacy.io/">spacy</a> to split the text into individual word tokens, remove punctuation, and lemmatize the words. Lemmatization converts words into their root forms, such as changing &quot;dogs&quot; to &quot;dog&quot; and &quot;running&quot; to &quot;run.&quot; This simplifies later analysis and saving the machine learning model from having to learn the relationships among these highly similar words.</p>
+<p>To build a model of the similarities among quotes, I used a recent neural network technique called <a target="_blank" href="https://cs.stanford.edu/~quocle/paragraph_vector.pdf">doc2vec</a>. (I also tested a classic matrix-based technique called <a target="_blank" href="https://en.wikipedia.org/wiki/Latent_semantic_analysis">Latent Semantic Analysis</a>, but found that doc2vec performed much better—see more on model evaluation below.) doc2vec builds off the well-known <a target="_blank" href="https://arxiv.org/pdf/1301.3781.pdf">word2vec</a> model. It seeks to represent documents (quotes, in this case) and the words that appear in them in a high dimensional vector space in such a way that documents that have high <a target="_blank" href="https://en.wikipedia.org/wiki/Cosine_similarity">cosine similarity</a> in the space are closely semantically related.</p>
+<p>The model begins by assigning each document, and each word in the corpus vocabulary, a random vector. It then iteratively updates these vectors using stochastic gradient descent. At each iteration, the model attempts to use the the document vector to predict which of a set of candidate words appears in the document. It then updates the document vector to reduce future error, essentially moving it towards the vector for the correct candidate and away from the distractors. A similar process moves word vectors towards other the vectors of other words that occur nearby in text. The eventual outcome of this process, as shown in the doc2vec paper and the original word2vec paper, is a vector space in which distances between vectors are interpretable as semantic similarity to humans.</p>
+<p>I used <a target="_blank" href="https://radimrehurek.com/gensim/">gensim</a>'s implementation of doc2vec, with 300-dimensional vectors. I also made a few modification such as down-weighting similarities to quotes with short vectors, as these tend to correspond to short quotes that have noisy, sometimes-inaccurate representations.</p>
+<p>Determining the best model structure requires some external metric of model performance. While doc2vec is trained on predicting words given a document id, my actual goal was to create meaningful vector space of quotes. To measure this, I created an evaluation task in which the model, given a target quote, had to pick which of two quotes came from the same person or source, and which was a randomly selected distractor. Quotes from the same person or source are likely to have similarities in meaning, and the model had no access to person or source labels during training, making this a reasonable test of the model's ability to extract semantic meaning. In my model evaluation process, I conducted this test using both same-source and same-person pairs and averaged the results. Chance performance on this metric is 50%, and the final model achieves performance of about 76.6%.</p>
+<h5 id="building-an-interface">Building an interface</h5>
+<p>quote2vec uses a RESTful <a target="_blank" href="http://flask.pocoo.org/">flask</a> back-end, hosted on Amazon Web Services. The website front-end uses the <a target="_blank" href="http://backbonejs.org/">backbone</a> framework to manage data and state, along with <a target="_blank" href="https://getbootstrap.com/">bootstrap</a> to create an attractive layout and interface. I used Twitter's <a target="_blank" href="https://twitter.github.io/typeahead.js/">typeahead</a> to create a suggestions interface for the search box.</p>
+<p>To create visualizations of quote groups, the server conducts <a target="_blank" href="https://en.wikipedia.org/wiki/Principal_component_analysis">principal component analysis</a> on the chosen quotes to reduce the 300-dimensional vectors to a 2-dimensional linear subspace that preserves maximal variance. While nonlinear dimensionality techniques such as t-SNE and multi-dimensional scaling might be able to preserve more of the similarity space than PCA, I found PCA to be far faster and more consistent. Once PCA is conducted using scikit-learn, the javascript front-end renders the visualization using <a target="_blank" href="https://d3js.org/">d3</a>.</p>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
