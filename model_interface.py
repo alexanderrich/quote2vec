@@ -132,6 +132,10 @@ class ModelInterface:
         return quotes, sources, people
 
     def get_keyword_quotes(self, keywords, n=25):
+        base_keywords = keywords
+        # duplicate short keyword strings to get in enough training
+        while len(keywords) < 20:
+            keywords = keywords + base_keywords
         v = self.model.infer_vector(keywords, steps=300)
         sims = self.index[v]
         sims = sorted(enumerate(sims), key=lambda item: -item[1])
