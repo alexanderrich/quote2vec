@@ -48,9 +48,9 @@ def get_quote_group(groupid):
         response = {'error': "No result found."}
     return jsonify(response)
 
-@app.route('/keywords/<keywordstring>')
-def get_keyword_quotes(keywordstring):
-    keywords = keywordstring.split('&')
+@app.route('/keywords', methods=['POST'])
+def get_keyword_quotes():
+    keywords = request.get_json()['keywords']
     quotes, sources, people, keyword_id = mi.get_keyword_quotes(keywords)
     quotes = [{'quote': q.quote,
                'id': q.id,

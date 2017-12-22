@@ -6,6 +6,7 @@ from gensim.models import Doc2Vec
 from gensim.similarities import Similarity
 import numpy as np
 from sklearn.decomposition import PCA
+import nltk
 
 
 class ModelInterface:
@@ -14,6 +15,7 @@ class ModelInterface:
         # self.dv = KeyedVectors.load(docvec_filename)
         self.model = Doc2Vec.load(model_filename)
         self.index = Similarity.load(index_filename)
+        self.lemmatize = nltk.stem.WordNetLemmatizer().lemmatize
 
     def get_random(self, randtype):
         session = Session()
@@ -132,10 +134,34 @@ class ModelInterface:
         return quotes, sources, people
 
     def get_keyword_quotes(self, keywords, n=25):
+
+        def get_pos(treebank_tag):
+
+            if treebank_tag.startswith('J'):
+                return 'a'
+            elif treebank_tag.startswith('V'):
+                return 'v'
+            elif treebank_tag.startswith('N'):
+                return 'n'
+            elif treebank_tag.startswith('R'):
+                return 'r'
+            else:
+                return ''
+
+        keywords = nltk.tokenize.word_tokenize(keywords)
+        keywords = nltk.pos_tag(keywords)
+        keywords = [self.lemmatize(w[0], get_pos(w[1])) if get_pos(w[1]) != '' else w[0] for w in keywords]
+        keywords = [k for k in keywords if k in self.model.wv.vocab]
+
         base_keywords = keywords
+        # if no words in the vocab, just return garbage...
+        if len(keywords) == 0:
+            keywords = ['']
         # duplicate short keyword strings to get in enough training
         while len(keywords) < 20:
             keywords = keywords + base_keywords
+
+        print(keywords)
         v = self.model.infer_vector(keywords, steps=300)
         sims = self.index[v]
         sims = sorted(enumerate(sims), key=lambda item: -item[1])

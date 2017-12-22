@@ -578,22 +578,24 @@ $(document).ready(function() {
         var keycode = (event.keyCode ? event.keyCode : event.which),
             val = this.value;
         if(keycode == '13' && searchtype === 'keywords'){
-            $.ajax({
-                dataType: 'json',
-                url: '/keywords/' + val.split(' ').join('&'),
-                success: function (data) {
-                    console.log(data);
-                    console.log('keyword' + data.keyword_id);
-                    var group;
-                    kl.add(new Keyword({id: data.keyword_id, keywords: val}));
-                    group = new Group({id: 'keyword' + data.keyword_id,
-                                       groupbasetype: 'keyword',
-                                       groupbaseid: data.keyword_id,
-                                       groupList: gl});
-                    group.set(group.parse(data));
-                    showGroup('keyword', data.keyword_id);
-                }
-            });
+            $.ajax({method: 'POST',
+                    dataType: 'json',
+                    contentType: "application/json; charset=utf-8",
+                    url: '/keywords',
+                    data: JSON.stringify({keywords: val}),
+                    success: function (data) {
+                        console.log(data);
+                        console.log('keyword' + data.keyword_id);
+                        var group;
+                        kl.add(new Keyword({id: data.keyword_id, keywords: val}));
+                        group = new Group({id: 'keyword' + data.keyword_id,
+                                           groupbasetype: 'keyword',
+                                           groupbaseid: data.keyword_id,
+                                           groupList: gl});
+                        group.set(group.parse(data));
+                        showGroup('keyword', data.keyword_id);
+                    }
+                   });
             this.value = '';
         }
     });
