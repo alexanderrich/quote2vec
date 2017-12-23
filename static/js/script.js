@@ -133,12 +133,19 @@ var GroupView = Backbone.View.extend({
                                      person: person
                                     }));
         var quotediv = this.$el.children('.quoteholder').eq(0);
+        if (this.model.get('isnew')) {
+            quotediv.hide();
+        }
         for(var i = 0; i < this.model.get('quotes').length; i++){
             var quoteview = new QuoteView({
                 model: ql.get(this.model.get('quotes')[i])
             });
             quotediv.append(quoteview.$el);
             quoteview.render();
+        }
+        if (this.model.get('isnew')) {
+            this.model.set('isnew', false);
+            quotediv.show(400);
         }
         return this;
     },
@@ -502,6 +509,7 @@ function showGroup(groupbasetype, groupbaseid) {
         group = new Group({id: groupbasetype + groupbaseid,
                            groupbasetype: groupbasetype,
                            groupbaseid: groupbaseid,
+                           isnew: true,
                            groupList: gl});
         group.fetch({success: function () {
             view.model = group;
@@ -565,9 +573,11 @@ $(document).ready(function() {
             } else {
                 $('#searchfield').attr('placeholder',
                                        'Search any text');
+                $("#randombtn").prop("disabled", true);
             }
             if (searchtype !== 'keywords') {
                 build_typeahead(suggestions[searchtype]);
+                $("#randombtn").prop("disabled", false);
             }
         }
     });
@@ -591,6 +601,7 @@ $(document).ready(function() {
                         group = new Group({id: 'keyword' + data.keyword_id,
                                            groupbasetype: 'keyword',
                                            groupbaseid: data.keyword_id,
+                                           isnew: true,
                                            groupList: gl});
                         group.set(group.parse(data));
                         showGroup('keyword', data.keyword_id);
