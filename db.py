@@ -4,7 +4,8 @@ from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy_fulltext import FullText
 
-engine = create_engine('mysql+mysqlconnector://alex:asr5991@localhost/wikiquote')
+with open('mysqlstring.txt', 'r') as f:
+    engine = create_engine(f.read().strip())
 
 Base = declarative_base()
 

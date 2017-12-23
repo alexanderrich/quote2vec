@@ -161,7 +161,6 @@ class ModelInterface:
         while len(keywords) < 20:
             keywords = keywords + base_keywords
 
-        print(keywords)
         v = self.model.infer_vector(keywords, steps=300)
         sims = self.index[v]
         sims = sorted(enumerate(sims), key=lambda item: -item[1])
