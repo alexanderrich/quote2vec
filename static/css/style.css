@@ -32,7 +32,7 @@
 .groupholder {
     /* height: 15%; */
     background-color: #EEE;
-    flex: 0 1 auto;
+    flex: 0 0 auto;
     padding: 10px;
     border-bottom: 1px solid gray;
 }
