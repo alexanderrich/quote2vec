@@ -1,4 +1,4 @@
-from db import Quote, Source, Person, Keyword, Session
+from db import Quote, Source, Person, Keyword, QuoteVec, Session
 from sqlalchemy_fulltext import FullTextSearch
 import sqlalchemy_fulltext.modes as FullTextMode
 from sqlalchemy.sql.expression import func
@@ -12,7 +12,6 @@ import nltk
 class ModelInterface:
 
     def __init__(self, model_filename, index_filename):
-        # self.dv = KeyedVectors.load(docvec_filename)
         self.model = Doc2Vec.load(model_filename)
         self.index = Similarity.load(index_filename)
         self.lemmatize = nltk.stem.WordNetLemmatizer().lemmatize
@@ -113,7 +112,7 @@ class ModelInterface:
         return quotes, source, [person]
 
     def get_similar_quotes(self, id, n=25):
-        sims = self.index[self.model.docvecs[id]]
+        sims = self.index[self.get_docvecs([id])[0]]
         sims = sorted(enumerate(sims), key=lambda item: -item[1])
         sims = sims[:n]
         ids = [i[0]+1 for i in sims]
@@ -153,11 +152,12 @@ class ModelInterface:
         keywords = [self.lemmatize(w[0], get_pos(w[1])) if get_pos(w[1]) != '' else w[0] for w in keywords]
         keywords = [k for k in keywords if k in self.model.wv.vocab]
 
-        base_keywords = keywords
+
         # if no words in the vocab, just return garbage...
         if len(keywords) == 0:
             keywords = ['']
         # duplicate short keyword strings to get in enough training
+        base_keywords = keywords
         while len(keywords) < 20:
             keywords = keywords + base_keywords
 
@@ -199,14 +199,38 @@ class ModelInterface:
         session.close()
         return quotes, sources, people
 
-    def get_docvec(self, id):
-        return self.model.docvecs[id]
+    def get_docvecs(self, ids):
+        session = Session()
+        docvecs = (session
+                   .query(QuoteVec)
+                   .filter(QuoteVec.id.in_(ids))
+                   .all())
+        # sort ids back into given order
+        order = np.argsort(ids)
+        docvecs_empty = [None] * len(docvecs)
+        for i in range(len(docvecs)):
+            docvecs_empty[order[i]] = docvecs[i]
+
+        # get docvecs from byte strings
+        docvecs = [np.fromstring(d.vec, np.float32) for d in docvecs_empty]
+        return docvecs
 
     def get_vis_coords(self, ids):
         # vecs = np.array([self.get_docvec(i) for i in ids])
-        vecs = [self.get_docvec(i) for i in ids]
+        vecs = self.get_docvecs(ids)
         vecs = np.array([v / np.linalg.norm(v) for v in vecs])
         if len(ids) == 1:
             return np.array([[0, 0]])
         else:
             return PCA(n_components=2).fit_transform(vecs)
+
+
+def build_docvec_table(model_filename):
+    model = Doc2Vec.load(model_filename)
+    docvecs = model.docvecs
+    session = Session()
+    for i in range(len(docvecs)):
+        qv = QuoteVec(id=i, vec=docvecs[i].tostring())
+        session.add(qv)
+        session.commit()
+    session.close()

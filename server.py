@@ -1,14 +1,13 @@
 from flask import Flask, request, render_template, jsonify
 from model_interface import ModelInterface
 from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy_fulltext import FullTextSearch
 import re
 
 
 app = Flask(__name__)
 
-mi = ModelInterface('models/dbow300_backto1pt5.model',
-                    'similarities/dbow300_backto1pt5.index')
+mi = ModelInterface('models/dbow300_min5neg15adjustcutoff60_deletetraining.model',
+                    'similarities/dbow300_min5neg15adjustcutoff60.index')
 
 @app.route('/')
 @app.route('/index')

@@ -63,6 +63,11 @@ class Keyword(Base):
     id = Column(Integer, primary_key=True)
     quotes = Column(LargeBinary)
 
+class QuoteVec(Base):
+    __tablename__ = 'quotevecs'
+    id = Column(Integer, primary_key=True)
+    vec = Column(LargeBinary)
+
 
 
 Session = sessionmaker(bind=engine)
