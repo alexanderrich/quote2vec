@@ -14,11 +14,13 @@ mi = ModelInterface('models/dbow300_min5neg15adjustcutoff60_deletetraining.model
 def index():
     return render_template('quote2vec.html')
 
+# get random group
 @app.route('/random/<randtype>')
 def get_random(randtype):
     return jsonify({'id': mi.get_random(randtype)})
 
 
+# get group with given id
 @app.route('/group/<groupid>')
 def get_quote_group(groupid):
     match = re.match(r"([a-z]+)([0-9]+)", groupid, re.I)
@@ -47,6 +49,8 @@ def get_quote_group(groupid):
         response = {'error': "No result found."}
     return jsonify(response)
 
+# get quotes for novel keyword string. Uses POST request to get keyword
+# string.
 @app.route('/keywords', methods=['POST'])
 def get_keyword_quotes():
     keywords = request.get_json()['keywords']
@@ -66,6 +70,7 @@ def get_keyword_quotes():
                 'sources': sources}
     return jsonify(response)
 
+# Get pca coords for list of quote groups.
 @app.route('/coords/<groupstring>')
 def get_group_coords(groupstring):
     groupstrings = groupstring.split('&')

@@ -1,50 +1,37 @@
 var colors = d3.scaleOrdinal(d3.schemeCategory10);
 
-var Person = Backbone.Model.extend({
-});
+// backbone models and collections for people, sources, quotes, and keyword strings
+var Person = Backbone.Model.extend({}),
+    Quote = Backbone.Model.extend({}),
+    Source = Backbone.Model.extend({}),
+    Keyword = Backbone.Model.extend({}),
+    QuoteList = Backbone.Collection.extend({model: Quote}),
+    SourceList = Backbone.Collection.extend({model: Source}),
+    PersonList = Backbone.Collection.extend({model: Person}),
+    KeywordList = Backbone.Collection.extend({model: Keyword});
 
-var Quote = Backbone.Model.extend({
-});
+var ql = new QuoteList(),
+    sl = new SourceList(),
+    pl = new PersonList(),
+    kl = new KeywordList();
 
-var Source = Backbone.Model.extend({
-});
 
-var Keyword = Backbone.Model.extend({
-});
-
-var QuoteList = Backbone.Collection.extend({
-    model: Quote
-});
-
-var SourceList = Backbone.Collection.extend({
-    model: Source
-});
-
-var PersonList = Backbone.Collection.extend({
-    model: Person
-});
-
-var KeywordList = Backbone.Collection.extend({
-    model: Keyword
-});
-
-var ql = new QuoteList();
-var sl = new SourceList();
-var pl = new PersonList();
-var kl = new KeywordList();
-
+// backbone model for managing PCA coords
 var Coords = Backbone.Model.extend({
     defaults: {'coords': []}
 });
 
 var coords;
 
+// backbone model for groups of quotes
 var Group = Backbone.Model.extend({
     urlRoot: 'group',
     defaults: {
         groupList: null
     },
     parse: function (response) {
+        // add all the quotes, sources and people to their respective
+        // collections, and store pointers to them
         var resp = {quotes: [],
                 sources: [],
                 people: []
@@ -61,6 +48,8 @@ var Group = Backbone.Model.extend({
             pl.add(new Person(i));
             resp.people.push(i.id);
         });
+        // set pointer to the "group base" - the person source or quote the
+        // group is built from
         if (this.get("groupbasetype") === "person") {
             resp.basemodel =  pl.get(this.get("groupbaseid"));
         } else if (this.get("groupbasetype") === "source") {
@@ -81,6 +70,7 @@ var GroupList = Backbone.Collection.extend({
 var gl = new GroupList();
 
 
+// list view of quote group
 var GroupView = Backbone.View.extend({
     model: Group,
     initialize: function () {
@@ -133,6 +123,8 @@ var GroupView = Backbone.View.extend({
                                      person: person
                                     }));
         var quotediv = this.$el.children('.quoteholder').eq(0);
+
+        // on first loading of group, do jquery show animation
         if (this.model.get('isnew')) {
             quotediv.hide();
         }
@@ -155,6 +147,7 @@ var GroupView = Backbone.View.extend({
     }
 });
 
+// view of group icon as it appears at top of graph view
 var GroupListGroupView = Backbone.View.extend({
     model: Group,
     tagName: 'div',
@@ -229,6 +222,7 @@ var GroupListGroupView = Backbone.View.extend({
     }
 });
 
+// view of group icons at top of graph view
 var GroupListView = Backbone.View.extend({
     model: GroupList,
     initialize: function () {
@@ -252,6 +246,7 @@ var GroupListView = Backbone.View.extend({
 
 var view;
 
+// view of a single quote, used in list view and on mouse-over of graph point
 var QuoteView = Backbone.View.extend({
     model: Quote,
     tagName: "div",
@@ -319,6 +314,7 @@ var QuoteView = Backbone.View.extend({
 });
 
 
+// function for producing d3 visualization from PCA coordinates
 var Scatter = function (element, data, colors) {
 
     var xValue = function(d){ return d.coords[0]; },
@@ -340,11 +336,8 @@ var Scatter = function (element, data, colors) {
         olddatadict = {};
 
     var rect = svg.append("rect")
-        // .attr("width", $('#svg').width())
-        // .attr("height", $('#svg').height())
         .attr('width', '100%')
         .attr('height', '100%')
-        // .attr('viewbox', '0 0 100 100')
         .style("fill", "None")
         .style("pointer-events", "all");
 
@@ -368,6 +361,11 @@ var Scatter = function (element, data, colors) {
         _.each(data, function (d, i) {
             datadict[d.group + '_' + d.quote] = i;
         });
+        // go through the new coordinates and old coordinates and compare their
+        // values for points that appear in both. If it looks like the x or y
+        // coordinates flip sign a lot, flip new new coordinates. Since the
+        // direction of principal components is arbitrary, this makes the
+        // changes from the old PCA projection to the new one smoother.
         for (var i = 0; i<2;i++){
             var sum = 0;
             _.each(olddatadict, function (v, k) {
@@ -471,6 +469,7 @@ var Scatter = function (element, data, colors) {
 
 };
 
+// view controlling D3 scatterplot for graph view
 var PlotView = Backbone.View.extend({
     model: Coords,
     initialize: function () {
@@ -484,6 +483,7 @@ var PlotView = Backbone.View.extend({
     }
 });
 
+// function called to get new coordinates from the server
 function updateCoords() {
     var groupliststring = _.pluck(gl.models, 'id').join('&');
     if (groupliststring){
@@ -500,6 +500,7 @@ function updateCoords() {
 }
 
 
+// function called to show group in list view, getting from server if necessary
 function showGroup(groupbasetype, groupbaseid) {
     var group = gl.findWhere({id: groupbasetype + groupbaseid});
     if (group) {
@@ -531,6 +532,7 @@ $(document).ready(function() {
     plotview.render();
 
 
+    // factor function to make autocompletion functions for search box
     var bloodhound_maker = function (url_base) {
         return new Bloodhound({
             datumTokenizer: Bloodhound.tokenizers.obj.whitespace('name'),
@@ -575,6 +577,7 @@ $(document).ready(function() {
                                        'Search any text');
                 $("#randombtn").prop("disabled", true);
             }
+            // no autocompletion or random for keywords
             if (searchtype !== 'keywords') {
                 build_typeahead(suggestions[searchtype]);
                 $("#randombtn").prop("disabled", false);
@@ -588,6 +591,10 @@ $(document).ready(function() {
         var keycode = (event.keyCode ? event.keyCode : event.which),
             val = this.value;
         if(keycode == '13' && searchtype === 'keywords'){
+            // because keyword quote groups don't exist yet in the server, have
+            // to create them through a separate call. After this, keyword group
+            // acts normally for all future calls, can be retrieved from
+            // '/group/' path, etc.
             $.ajax({method: 'POST',
                     dataType: 'json',
                     contentType: "application/json; charset=utf-8",
@@ -631,5 +638,6 @@ $(document).ready(function() {
         });
     });
 
+    // always start by showing instructions
     $('#instructionsModal').modal('show');
 });

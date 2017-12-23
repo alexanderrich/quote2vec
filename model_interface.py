@@ -12,9 +12,11 @@ import nltk
 class ModelInterface:
 
     def __init__(self, model_filename, index_filename):
-        self.model = Doc2Vec.load(model_filename)
-        self.index = Similarity.load(index_filename)
+        # lemmatizer and model for keyword inference
         self.lemmatize = nltk.stem.WordNetLemmatizer().lemmatize
+        self.model = Doc2Vec.load(model_filename)
+        # index for similarity queries
+        self.index = Similarity.load(index_filename)
 
     def get_random(self, randtype):
         session = Session()
@@ -28,6 +30,7 @@ class ModelInterface:
     def get_person_suggestions(self, query, n=10):
         session = Session()
         query_ft = query
+        # replace problematic characters for fulltext search
         for char in '()+-*~@<>"':
             query_ft = query_ft.replace(char, ' ')
         people = (session.query(Person)
@@ -42,6 +45,7 @@ class ModelInterface:
     def get_source_suggestions(self, query, n=10):
         session = Session()
         query_ft = query
+        # replace problematic characters for fulltext search
         for char in '()+-*~@<>"':
             query_ft = query_ft.replace(char, ' ')
         sources = (session.query(Source)
@@ -56,6 +60,7 @@ class ModelInterface:
     def get_quote_suggestions(self, query, n=10):
         session = Session()
         query_ft = query
+        # replace problematic characters for fulltext search
         for char in '()+-*~@<>"':
             query_ft = query.replace(char, ' ')
         quotes = (session.query(Quote)
@@ -66,22 +71,6 @@ class ModelInterface:
                   .all())
         session.close()
         return quotes
-
-    def get_quote(self, id):
-        session = Session()
-        quote = (session.query(Quote)
-                 .filter(Quote.id == id)
-                 .one())
-        person = (session.query(Person)
-                  .filter(Person.id == quote.person_id)
-                  .one())
-        if quote.source_id:
-            source = (session.query(Source)
-                      .filter(Source.id == quote.source_id)
-                      .one())
-            return [quote], [source], [person]
-        session.close()
-        return [quote], [], [person]
 
     def get_source_quotes(self, id):
         session = Session()
@@ -111,6 +100,7 @@ class ModelInterface:
         session.close()
         return quotes, source, [person]
 
+    # get group of quotes similar to a given quote
     def get_similar_quotes(self, id, n=25):
         sims = self.index[self.get_docvecs([id])[0]]
         sims = sorted(enumerate(sims), key=lambda item: -item[1])
@@ -132,10 +122,11 @@ class ModelInterface:
         session.close()
         return quotes, sources, people
 
+    # get group of quotes similar to keyword string
     def get_keyword_quotes(self, keywords, n=25):
 
+        # function to convert incompatible nltk POS tags
         def get_pos(treebank_tag):
-
             if treebank_tag.startswith('J'):
                 return 'a'
             elif treebank_tag.startswith('V'):
@@ -152,7 +143,6 @@ class ModelInterface:
         keywords = [self.lemmatize(w[0], get_pos(w[1])) if get_pos(w[1]) != '' else w[0] for w in keywords]
         keywords = [k for k in keywords if k in self.model.wv.vocab]
 
-
         # if no words in the vocab, just return garbage...
         if len(keywords) == 0:
             keywords = ['']
@@ -161,18 +151,24 @@ class ModelInterface:
         while len(keywords) < 20:
             keywords = keywords + base_keywords
 
+        # create new docvec using model
         v = self.model.infer_vector(keywords, steps=300)
         sims = self.index[v]
         sims = sorted(enumerate(sims), key=lambda item: -item[1])
         sims = sims[:n]
         ids = [i[0]+1 for i in sims]
-        # retrieve actual quotes
+
+        # cache keyword's similar quotes in the db. This means when this
+        # keyword is needed in the future (e.g., to update PCA coords), vector
+        # and similarity isn't recomputed
         quotebytes = np.array(ids).tostring()
         keyword = Keyword(quotes=quotebytes)
         session = Session()
         session.add(keyword)
         session.commit()
         keyword_id = keyword.id
+
+        # retrieve actual quotes
         quotes = session.query(Quote).filter(Quote.id.in_(ids)).all()
         quotes_dict = {q.id: q for q in quotes}
         quotes = [quotes_dict[i] for i in ids]
@@ -183,6 +179,8 @@ class ModelInterface:
         session.close()
         return quotes, sources, people, keyword_id
 
+    # get quotes similar to keyword, for keyword string that's already been
+    # computed and cached
     def get_keyword_quotes_cached(self, id):
         session = Session()
         keyword = session.query(Keyword).filter(Keyword.id == id).one()
@@ -198,6 +196,7 @@ class ModelInterface:
         session.close()
         return quotes, sources, people
 
+    # get docvecs for list of quote ids
     def get_docvecs(self, ids):
         session = Session()
         docvecs = (session
@@ -214,8 +213,8 @@ class ModelInterface:
         docvecs = [np.fromstring(d.vec, np.float32) for d in docvecs_empty]
         return docvecs
 
+    # get PCA coordinates for list of quote ids
     def get_vis_coords(self, ids):
-        # vecs = np.array([self.get_docvec(i) for i in ids])
         vecs = self.get_docvecs(ids)
         vecs = np.array([v / np.linalg.norm(v) for v in vecs])
         if len(ids) == 1:
@@ -224,8 +223,10 @@ class ModelInterface:
             return PCA(n_components=2).fit_transform(vecs)
 
 
+# utility to load all docvecs from a model into the database and then resave
+# the model with docvecs deleted
 def build_docvec_table(model_filename):
-    model = Doc2Vec.load(model_filename)
+    model = Doc2Vec.load(model_filename + '.model')
     docvecs = model.docvecs
     session = Session()
     for i in range(len(docvecs)):
@@ -233,3 +234,5 @@ def build_docvec_table(model_filename):
         session.add(qv)
         session.commit()
     session.close()
+    model.docvecs = []
+    model.save(model_filename + '_deletetraining.model')
