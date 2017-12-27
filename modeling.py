@@ -7,6 +7,10 @@ nlp = spacy.load('en')
 
 
 def build_corpus(filename=None):
+    """
+    process all quotes in the database and return a list of tokenized training data.
+    Optionally, save the processed data to a plain text file as well for later use.
+    """
     session = Session()
     original = session.query(Quote).all()
     session.close()
@@ -28,7 +32,6 @@ def build_corpus(filename=None):
         return spacy_quote
 
     parsed = [[lemma(q) for q in spacify(quote) if q.pos_ not in ['PUNCT', 'SPACE']] for quote in quotes]
-    # idx2id = {i: original[i].id for i in range(len(original))}
     quoteid = [q.id for q in original]
     sourceid = [q.source_id for q in original]
     sourceid = [s if s is not None else -1 for s in sourceid]
@@ -46,6 +49,9 @@ def build_corpus(filename=None):
 
 
 def load_corpus(filename):
+    """
+    load list of tokenized training data from plain text format produced by build_corpus
+    """
     with open(filename, 'r') as f:
         parsed = f.readlines()
         parsed = [q.strip().split("|") for q in parsed]
@@ -54,6 +60,10 @@ def load_corpus(filename):
 
 
 class BaseModel:
+    """
+    Basic class for training models on quote data. Contains score function for evaluating models
+    across any gensim model type that can create a similarity index.
+    """
 
     def __init__(self, parsed, name):
         self.modelfn = None
@@ -77,10 +87,20 @@ class BaseModel:
         return sims, quotes
 
     def score(self, n_samples=100):
+        """
+        This function evaluates the proportion of quotes for which a quote chosen
+        from the same {person, source} is more similar than a randomly chosen
+        quote. The function estimates this proportion using n_samples samples,
+        and calculates the value for both person pairs and source paris,
+        returning both values and the average of the two.
+        """
+        # choose random set of quotes to test
         sample = [x for x in range(len(self.parsed))]
         shuffle(sample)
         sample = sample[:n_samples]
         sample = [self.parsed[s][0] for s in sample]
+        # build lookup tables to go from chosen quote to all other quotes from
+        # that person or source
         person2quotes = {}
         for qid, pid in self.id2person.items():
             if pid not in person2quotes:
@@ -102,41 +122,35 @@ class BaseModel:
         for p, qlist in source2quotes.items():
             for q in qlist:
                 quote2sourcequotes[q] = qlist
-        persondiffs = []
-        sourcediffs = []
-        # transvec = [self.transformed[x] for x in sample]
-        # loopcount = -1
-        # for sims in self.index[transvec]:
-            # loopcount += 1
-            # i = sample[loopcount]
+        # for each target quote, choose a random quote and a quote from the
+        # same {source, person}, and see if the source or person quote is more
+        # similar than the random quote.
+        personacc = []
+        sourceacc = []
         for i in sample:
-            # sims = self.index[self.transformed[i]]
             sims = self.index.similarity_by_id(self.id2idx[i])
-            # m_all = np.mean(sims)
-            # sd = np.std(sims)
             ids = quote2personquotes[i]
             idxs = [self.id2idx[id] for id in ids if id != i]
             if len(idxs):
                 sample_control = np.random.choice(sims)
-                # m_person = np.mean(np.array(sims)[idxs])
                 sample_person = np.random.choice(np.array(sims)[idxs])
-                persondiffs.append(sample_person > sample_control)
+                personacc.append(sample_person > sample_control)
             if i in quote2sourcequotes:
                 ids = quote2sourcequotes[i]
                 idxs = [self.id2idx[id] for id in ids if id != i]
                 if len(idxs):
                     sample_control = np.random.choice(sims)
                     sample_source = np.random.choice(np.array(sims)[idxs])
-                    sourcediffs.append(sample_source > sample_control)
-        persondiff = np.mean(persondiffs)
-        sourcediff = np.mean(sourcediffs)
-        diff = (sourcediff + persondiff) / 2
-        return diff
+                    sourceacc.append(sample_source > sample_control)
+        personacc = np.mean(personacc)
+        sourceacc = np.mean(sourceacc)
+        acc = (sourceacc + personacc) / 2
+        return (personacc, sourceacc, acc)
 
 
 class LsiWrapper(BaseModel):
-
-    def __init__(self, parsed, num_topics, name):
+    """Wrapper for model using Latent Semantic Indexing"""
+    def __init__(self, parsed, name, num_topics):
         super().__init__(parsed, name)
         dictionary = corpora.Dictionary(parsed)
         bow = [dictionary.doc2bow(q) for q in parsed]
@@ -158,6 +172,7 @@ class LsiWrapper(BaseModel):
 
 
 class Doc2VecWrapper(BaseModel):
+    """Wrapper for model using Doc2Vec"""
     def __init__(self, parsed, name, **kwargs):
         super().__init__(parsed, name)
         self.name = name
@@ -172,22 +187,27 @@ class Doc2VecWrapper(BaseModel):
 
     def train(self, alpha):
         shuffle(self.taggeddocs)
-        train_docs = []
-        for d in self.taggeddocs:
-           words = d.words
-           newwords = np.random.choice(words, int(np.round(8 * np.sqrt(len(words)))))
-           train_docs.append(models.doc2vec.TaggedDocument(words, d.tags))
         self.model.alpha = alpha
         self.model.min_alpha = alpha
-        # self.model.train(self.taggeddocs, total_examples=self.model.corpus_count, epochs=1)
-        self.model.train(train_docs, total_examples=self.model.corpus_count, epochs=1)
+        self.model.train(self.taggeddocs, total_examples=self.model.corpus_count, epochs=1)
         print("finished epoch")
 
-    def finish_training(self):
+    def finish_training(self, percentile):
         self.model.save('models/'+self.name+'.model')
         self.transformed = self.model.docvecs[[x[0] for x in self.parsed]]
-        normalized = [v / np.sqrt(np.linalg.norm(v)) for v in self.transformed]
-        self.index = similarities.Similarity('similarities/'+self.name, normalized, self.transformed.shape[1])
+
+        # normalize vectors for cosine similarity calculation, but penalize
+        # vectors under a certain length percentile
+        norms = []
+        for v in self.transformed:
+            norms.append(np.linalg.norm(v))
+        cutoff = np.percentile(norms, percentile)
+        print(cutoff)
+        normalized = [v / np.max([np.power(np.linalg.norm(v)/cutoff, .5),
+                                  np.linalg.norm(v)/cutoff])
+                      for v in self.transformed]
+        self.index = similarities.Similarity('similarities/'+self.name,
+                                             normalized, self.transformed.shape[1])
         self.index.save('similarities/'+self.name+'.index')
 
     def get_docvec(self, id):
@@ -196,10 +216,14 @@ class Doc2VecWrapper(BaseModel):
 
 if __name__=="__main__":
     parsed = build_corpus('tokenized.txt')
-    model = Doc2VecWrapper(parsed, 'dbow300_withgoogle', size=300, min_count=2, dm=0, negative=5, dbow_words=1, workers=8, sample=10**-3)
-    model.model.intersect_word2vec_format('GoogleNews-vectors-negative300.bin', binary=True, lockf=1.0)
-    for i in range(20):
+    model = Doc2VecWrapper(parsed, 'dbow300', size=300,
+                           min_count=5, dm=0, negative=15,
+                           dbow_words=1, workers=8, sample=10**-5)
+
+    # optionally, pre-populate with google news word vectors
+    # model.model.intersect_word2vec_format('GoogleNews-vectors-negative300.bin', binary=True, lockf=1.0)
+
+    for i in range(32):
         model.train(.025*(.95**i))
-    model.finish_training()
-    model.model.docvecs.save('models/docvecs')
+    model.finish_training(60)
     print(model.score(n_samples=10000))
