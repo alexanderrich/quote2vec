@@ -25,6 +25,7 @@ class ModelInterface:
               .order_by(func.random())
               .limit(1)
               .one().id)
+        Session.remove()
         return id
 
     def get_person_suggestions(self, query, n=10):
@@ -39,7 +40,7 @@ class ModelInterface:
                   .order_by(func.length(Person.name))
                   .limit(n)
                   .all())
-        session.close()
+        Session.remove()
         return people
 
     def get_source_suggestions(self, query, n=10):
@@ -54,7 +55,7 @@ class ModelInterface:
                    .order_by(func.length(Source.source))
                    .limit(n)
                    .all())
-        session.close()
+        Session.remove()
         return sources
 
     def get_quote_suggestions(self, query, n=10):
@@ -69,7 +70,7 @@ class ModelInterface:
                   .order_by(func.length(Quote.quote))
                   .limit(n)
                   .all())
-        session.close()
+        Session.remove()
         return quotes
 
     def get_source_quotes(self, id):
@@ -83,7 +84,7 @@ class ModelInterface:
         person = (session.query(Person)
                   .filter(Person.id == source.person_id)
                   .one())
-        session.close()
+        Session.remove()
         return quotes, [source], [person]
 
     def get_person_quotes(self, id):
@@ -97,7 +98,7 @@ class ModelInterface:
         person = (session.query(Person)
                   .filter(Person.id == id)
                   .one())
-        session.close()
+        Session.remove()
         return quotes, source, [person]
 
     # get group of quotes similar to a given quote
@@ -119,7 +120,7 @@ class ModelInterface:
         sources = session.query(Source).filter(Source.id.in_(source_ids)).all()
         person_ids = set([q.person_id for q in quotes])
         people = session.query(Person).filter(Person.id.in_(person_ids)).all()
-        session.close()
+        Session.remove()
         return quotes, sources, people
 
     # get group of quotes similar to keyword string
@@ -176,7 +177,7 @@ class ModelInterface:
         sources = session.query(Source).filter(Source.id.in_(source_ids)).all()
         person_ids = set([q.person_id for q in quotes])
         people = session.query(Person).filter(Person.id.in_(person_ids)).all()
-        session.close()
+        Session.remove()
         return quotes, sources, people, keyword_id
 
     # get quotes similar to keyword, for keyword string that's already been
@@ -193,7 +194,7 @@ class ModelInterface:
         sources = session.query(Source).filter(Source.id.in_(source_ids)).all()
         person_ids = set([q.person_id for q in quotes])
         people = session.query(Person).filter(Person.id.in_(person_ids)).all()
-        session.close()
+        Session.remove()
         return quotes, sources, people
 
     # get docvecs for list of quote ids
@@ -211,6 +212,7 @@ class ModelInterface:
 
         # get docvecs from byte strings
         docvecs = [np.fromstring(d.vec, np.float32) for d in docvecs_empty]
+        Session.remove()
         return docvecs
 
     # get PCA coordinates for list of quote ids
@@ -233,6 +235,6 @@ def build_docvec_table(model_filename):
         qv = QuoteVec(id=i, vec=docvecs[i].tostring())
         session.add(qv)
         session.commit()
-    session.close()
+    Session.remove()
     model.docvecs = []
     model.save(model_filename + '_deletetraining.model')

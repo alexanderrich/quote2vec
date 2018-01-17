@@ -1,11 +1,11 @@
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, String, ForeignKey, LargeBinary
-from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.orm import relationship, sessionmaker, scoped_session
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy_fulltext import FullText
 
 with open('mysqlstring.txt', 'r') as f:
-    engine = create_engine(f.read().strip())
+    engine = create_engine(f.read().strip(), pool_recycle=3600)
 
 Base = declarative_base()
 
@@ -71,4 +71,4 @@ class QuoteVec(Base):
 
 
 
-Session = sessionmaker(bind=engine)
+Session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine))
